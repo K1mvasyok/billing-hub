@@ -1,0 +1,97 @@
+### Примеры запросов для IntelliJ HTTP Client (или VS Code REST Client).
+### Порядок: клиент → план → цена → договор → позиция → активация.
+### Id берите из ответов предыдущих запросов и подставляйте вручную.
+
+@base = http://localhost:8080/api/v1
+
+### 1. Клиент (ИНН организации — 10 цифр, синтетический)
+POST {{base}}/customers
+Content-Type: application/json
+
+{
+  "type": "ORG",
+  "name": "Тестовая организация",
+  "taxId": "7700000001",
+  "email": "office@example.test",
+  "phone": "+70000000001"
+}
+
+### 2. Поиск клиентов (по названию или ИНН, фильтр по статусу, пагинация)
+GET {{base}}/customers?query=тест&status=ACTIVE&page=0&size=20&sort=name,asc
+
+### 3. Частичное обновление клиента (null-поля не меняются)
+PATCH {{base}}/customers/CUSTOMER_ID
+Content-Type: application/json
+
+{
+  "phone": "+70000000002"
+}
+
+### 4. План
+POST {{base}}/plans
+Content-Type: application/json
+
+{
+  "code": "BASIC",
+  "name": "Базовый"
+}
+
+### 5. Цена плана на период. Строка "1500.00" — деньги без потери точности.
+### Повторите с пересекающимся периодом: получите 409 с type ...:plan-price-overlap.
+POST {{base}}/plans/PLAN_ID/prices
+Content-Type: application/json
+
+{
+  "validFrom": "2026-01-01",
+  "validTo": "2026-07-01",
+  "monthlyPrice": "1500.00"
+}
+
+### 6. Договор (создаётся в статусе DRAFT)
+POST {{base}}/contracts
+Content-Type: application/json
+
+{
+  "customerId": "CUSTOMER_ID",
+  "number": "C-2026-0001",
+  "signedOn": "2026-01-01",
+  "validFrom": "2026-01-01",
+  "validTo": "2026-12-31",
+  "paymentTermDays": 14
+}
+
+### 7. Позиция договора. Период позиции должен лежать внутри периода договора.
+POST {{base}}/contracts/CONTRACT_ID/items
+Content-Type: application/json
+
+{
+  "planId": "PLAN_ID",
+  "quantity": 2,
+  "validFrom": "2026-01-01",
+  "validTo": "2026-12-31"
+}
+
+### 8. Изменить позицию (только в DRAFT). Передаются количество и период целиком.
+PATCH {{base}}/contracts/CONTRACT_ID/items/ITEM_ID
+Content-Type: application/json
+
+{
+  "quantity": 3,
+  "validFrom": "2026-01-01",
+  "validTo": "2026-12-31"
+}
+
+### 9. Активировать (нужна хотя бы одна позиция)
+POST {{base}}/contracts/CONTRACT_ID/activate
+
+### 10. Расторгнуть
+POST {{base}}/contracts/CONTRACT_ID/terminate
+
+### 11. Карточка договора с позициями
+GET {{base}}/contracts/CONTRACT_ID
+
+### 12. Список договоров клиента
+GET {{base}}/contracts?customerId=CUSTOMER_ID&status=ACTIVE
+
+### Swagger UI: http://localhost:8080/swagger-ui.html
+### OpenAPI JSON: http://localhost:8080/v3/api-docs

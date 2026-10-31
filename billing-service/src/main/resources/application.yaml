@@ -3,6 +3,16 @@ spring:
     name: billing-service
   jpa:
     open-in-view: false
+    hibernate:
+      # Схему меняют только миграции Liquibase. Hibernate лишь проверяет, что сущности совпадают с таблицами.
+      ddl-auto: validate
+  mvc:
+    problemdetails:
+      enabled: true
+  data:
+    web:
+      pageable:
+        max-page-size: 100
 
 management:
   endpoints:
