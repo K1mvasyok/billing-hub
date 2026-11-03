@@ -1,6 +1,6 @@
 # CLAUDE.md — billing-hub
 
-Pet project: B2B subscription billing on Java 25 / Spring Boot 4. Plan and business rules: docs/PLAN.md (BR-01…BR-18). Talk to me in Russian; code, comments, commits and docs in English.
+Pet project: B2B subscription billing on Java 25 / Spring Boot 4. Plan and business rules: docs/PLAN.md (BR-01…BR-18). Talk to me in Russian; code and docs in English, comments in Russian, commits in English.
 
 ## Commands
 - Build and all checks: `./gradlew check`
