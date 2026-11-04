@@ -43,7 +43,7 @@ class ContractLifecycleTest {
 
     @Test
     void contractGoesFromDraftToActiveToTerminated() throws Exception {
-        String planId = createPlan(unique("PLAN"));
+        String planId = createPlanWithPrice();
         String contractId = createContract(createCustomer(), unique("CTR"));
         addItem(contractId, planId, "2026-01-01", "2026-12-31");
 
@@ -80,8 +80,38 @@ class ContractLifecycleTest {
     }
 
     @Test
-    void itemCannotBeChangedAfterActivation() throws Exception {
+    void itemOfPlanWithoutPriceIsRejected() throws Exception {
         String planId = createPlan(unique("PLAN"));
+        String contractId = createContract(createCustomer(), unique("CTR"));
+
+        mockMvc.perform(post("/api/v1/contracts/{id}/items", contractId)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"planId": "%s", "quantity": 1, "validFrom": "2026-01-01", "validTo": "2026-12-31"}
+                                """.formatted(planId)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("urn:billing-hub:problem:plan-price-missing"));
+    }
+
+    @Test
+    void itemPeriodWithPriceGapIsRejected() throws Exception {
+        String planId = createPlan(unique("PLAN"));
+        addPrice(planId, "2026-01-01", "2026-07-01", "100.00");
+        addPrice(planId, "2026-08-01", "2027-01-01", "120.00");
+        String contractId = createContract(createCustomer(), unique("CTR"));
+
+        mockMvc.perform(post("/api/v1/contracts/{id}/items", contractId)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"planId": "%s", "quantity": 1, "validFrom": "2026-01-01", "validTo": "2026-12-31"}
+                                """.formatted(planId)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("urn:billing-hub:problem:plan-price-missing"));
+    }
+
+    @Test
+    void itemCannotBeChangedAfterActivation() throws Exception {
+        String planId = createPlanWithPrice();
         String contractId = createContract(createCustomer(), unique("CTR"));
         String itemId = addItem(contractId, planId, "2026-01-01", "2026-12-31");
         mockMvc.perform(post("/api/v1/contracts/{id}/activate", contractId)).andExpect(status().isOk());
@@ -125,7 +155,7 @@ class ContractLifecycleTest {
 
     @Test
     void enversRecordsEveryRevisionOfTheContract() throws Exception {
-        String planId = createPlan(unique("PLAN"));
+        String planId = createPlanWithPrice();
         String contractId = createContract(createCustomer(), unique("CTR"));
         addItem(contractId, planId, "2026-01-01", "2026-12-31");
         mockMvc.perform(post("/api/v1/contracts/{id}/activate", contractId)).andExpect(status().isOk());
@@ -166,6 +196,13 @@ class ContractLifecycleTest {
                                 """.formatted(code)))
                 .andExpect(status().isCreated())
                 .andReturn());
+    }
+
+    /** План с бессрочной ценой, покрывающей любой период в тестах договоров 2026 года. */
+    private String createPlanWithPrice() throws Exception {
+        String planId = createPlan(unique("PLAN"));
+        addPrice(planId, "2025-01-01", "2030-01-01", "1500.00");
+        return planId;
     }
 
     private void addPrice(String planId, String from, String to, String amount) throws Exception {

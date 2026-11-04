@@ -10,8 +10,11 @@ import io.github.k1mvasyok.billing.contracts.domain.Contract;
 import io.github.k1mvasyok.billing.contracts.domain.ContractItem;
 import io.github.k1mvasyok.billing.contracts.domain.ContractStatus;
 import io.github.k1mvasyok.billing.contracts.domain.Plan;
+import io.github.k1mvasyok.billing.contracts.domain.PlanPrice;
+import io.github.k1mvasyok.billing.contracts.domain.PriceCoverage;
 import io.github.k1mvasyok.billing.contracts.domain.ValidityPeriod;
 import io.github.k1mvasyok.billing.contracts.infra.ContractRepository;
+import io.github.k1mvasyok.billing.contracts.infra.PlanPriceRepository;
 import io.github.k1mvasyok.billing.contracts.infra.PlanRepository;
 import io.github.k1mvasyok.billing.customers.api.CustomerDirectory;
 import io.github.k1mvasyok.billing.shared.error.BusinessRuleException;
@@ -21,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -29,13 +33,15 @@ public class ContractService {
 
     private final ContractRepository contracts;
     private final PlanRepository plans;
+    private final PlanPriceRepository planPrices;
     private final CustomerDirectory customers;
     private final ContractMapper mapper;
 
-    public ContractService(ContractRepository contracts, PlanRepository plans,
+    public ContractService(ContractRepository contracts, PlanRepository plans, PlanPriceRepository planPrices,
                            CustomerDirectory customers, ContractMapper mapper) {
         this.contracts = contracts;
         this.plans = plans;
+        this.planPrices = planPrices;
         this.customers = customers;
         this.mapper = mapper;
     }
@@ -77,18 +83,34 @@ public class ContractService {
         Contract contract = load(contractId);
         Plan plan = plans.findById(request.planId())
                 .orElseThrow(() -> new NotFoundException("План", request.planId()));
-        ContractItem item = contract.addItem(plan, request.quantity(),
-                new ValidityPeriod(request.validFrom(), request.validTo()));
+        ValidityPeriod period = new ValidityPeriod(request.validFrom(), request.validTo());
+        ContractItem item = contract.addItem(plan, request.quantity(), period);
+        requirePriceCoverage(plan, period);
         contracts.saveAndFlush(contract);
         return mapper.toItemResponse(item);
     }
 
     public ItemResponse updateItem(UUID contractId, UUID itemId, ItemUpdateRequest request) {
         Contract contract = load(contractId);
-        ContractItem item = contract.updateItem(itemId, request.quantity(),
-                new ValidityPeriod(request.validFrom(), request.validTo()));
+        ValidityPeriod period = new ValidityPeriod(request.validFrom(), request.validTo());
+        ContractItem item = contract.updateItem(itemId, request.quantity(), period);
+        requirePriceCoverage(item.getPlan(), period);
         contracts.saveAndFlush(contract);
         return mapper.toItemResponse(item);
+    }
+
+    /**
+     * Позиция не может висеть на периоде, где у плана нет цены: счёт по ней не посчитать (BR-03).
+     * Исключение откатывает транзакцию, поэтому изменения позиции в памяти не сохранятся.
+     */
+    private void requirePriceCoverage(Plan plan, ValidityPeriod period) {
+        List<ValidityPeriod> prices = planPrices.findByPlanId(plan.getId()).stream()
+                .map(PlanPrice::period)
+                .toList();
+        if (!PriceCoverage.covers(prices, period)) {
+            throw new BusinessRuleException("plan-price-missing",
+                    "У плана нет цены на весь период позиции");
+        }
     }
 
     private Contract load(UUID id) {
