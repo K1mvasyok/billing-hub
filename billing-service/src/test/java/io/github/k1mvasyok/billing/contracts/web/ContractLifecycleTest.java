@@ -18,6 +18,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -54,6 +55,15 @@ class ContractLifecycleTest {
         mockMvc.perform(post("/api/v1/contracts/{id}/terminate", contractId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("TERMINATED"));
+    }
+
+    @Test
+    void contractListWorksWithoutFilters() throws Exception {
+        createContract(createCustomer(), unique("CTR"));
+
+        mockMvc.perform(get("/api/v1/contracts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test

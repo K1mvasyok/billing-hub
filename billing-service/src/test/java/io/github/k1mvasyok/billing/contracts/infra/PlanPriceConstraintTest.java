@@ -3,7 +3,7 @@ package io.github.k1mvasyok.billing.contracts.infra;
 import io.github.k1mvasyok.billing.TestcontainersConfiguration;
 import io.github.k1mvasyok.billing.contracts.domain.Plan;
 import io.github.k1mvasyok.billing.contracts.domain.PlanPrice;
-import io.github.k1mvasyok.billing.contracts.domain.ValidityPeriod;
+import io.github.k1mvasyok.billing.shared.period.ValidityPeriod;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;

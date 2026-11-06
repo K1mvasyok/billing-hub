@@ -11,19 +11,22 @@ import io.github.k1mvasyok.billing.contracts.domain.ContractItem;
 import io.github.k1mvasyok.billing.contracts.domain.ContractStatus;
 import io.github.k1mvasyok.billing.contracts.domain.Plan;
 import io.github.k1mvasyok.billing.contracts.domain.PlanPrice;
-import io.github.k1mvasyok.billing.contracts.domain.PriceCoverage;
-import io.github.k1mvasyok.billing.contracts.domain.ValidityPeriod;
+import io.github.k1mvasyok.billing.shared.period.PriceCoverage;
+import io.github.k1mvasyok.billing.shared.period.ValidityPeriod;
 import io.github.k1mvasyok.billing.contracts.infra.ContractRepository;
 import io.github.k1mvasyok.billing.contracts.infra.PlanPriceRepository;
 import io.github.k1mvasyok.billing.contracts.infra.PlanRepository;
 import io.github.k1mvasyok.billing.customers.api.CustomerDirectory;
 import io.github.k1mvasyok.billing.shared.error.BusinessRuleException;
 import io.github.k1mvasyok.billing.shared.error.NotFoundException;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,7 +62,21 @@ public class ContractService {
 
     @Transactional(readOnly = true)
     public Page<ContractResponse> search(UUID customerId, ContractStatus status, Pageable pageable) {
-        return contracts.search(customerId, status, pageable).map(mapper::toContractResponse);
+        return contracts.findAll(matching(customerId, status), pageable).map(mapper::toContractResponse);
+    }
+
+    /** Фильтры добавляются только для заданных параметров; null-параметр в JPQL PostgreSQL не типизирует. */
+    private static Specification<Contract> matching(UUID customerId, ContractStatus status) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (customerId != null) {
+                predicates.add(cb.equal(root.get("customerId"), customerId));
+            }
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     @Transactional(readOnly = true)

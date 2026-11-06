@@ -1,5 +1,7 @@
 package io.github.k1mvasyok.billing.contracts.domain;
 
+import io.github.k1mvasyok.billing.shared.period.ValidityPeriod;
+
 import io.github.k1mvasyok.billing.shared.error.BusinessRuleException;
 import io.github.k1mvasyok.billing.shared.error.NotFoundException;
 import io.github.k1mvasyok.billing.shared.persistence.AbstractEntity;

@@ -1,5 +1,7 @@
 package io.github.k1mvasyok.billing.contracts.domain;
 
+import io.github.k1mvasyok.billing.shared.period.ValidityPeriod;
+
 import io.github.k1mvasyok.billing.shared.persistence.AbstractEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

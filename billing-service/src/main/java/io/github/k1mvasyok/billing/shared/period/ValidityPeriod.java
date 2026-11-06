@@ -1,4 +1,4 @@
-package io.github.k1mvasyok.billing.contracts.domain;
+package io.github.k1mvasyok.billing.shared.period;
 
 import java.time.LocalDate;
 

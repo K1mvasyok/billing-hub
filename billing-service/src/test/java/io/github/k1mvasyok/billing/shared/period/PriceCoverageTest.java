@@ -1,4 +1,4 @@
-package io.github.k1mvasyok.billing.contracts.domain;
+package io.github.k1mvasyok.billing.shared.period;
 
 import org.junit.jupiter.api.Test;
 
