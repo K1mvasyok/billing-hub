@@ -8,17 +8,14 @@ import io.github.k1mvasyok.billing.invoicing.api.InvoiceResponse;
 import io.github.k1mvasyok.billing.invoicing.domain.Invoice;
 import io.github.k1mvasyok.billing.invoicing.domain.InvoiceStatus;
 import io.github.k1mvasyok.billing.invoicing.infra.InvoiceRepository;
+import io.github.k1mvasyok.billing.invoicing.infra.InvoiceSpecifications;
 import io.github.k1mvasyok.billing.shared.error.NotFoundException;
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -42,29 +39,8 @@ public class InvoiceService {
     public Page<InvoiceResponse> search(UUID customerId, UUID contractId, InvoiceStatus status,
                                         String period, Pageable pageable) {
         LocalDate month = period == null ? null : BillingPeriodService.parseMonth(period);
-        return invoices.findAll(matching(customerId, contractId, status, month), pageable)
+        return invoices.findAll(InvoiceSpecifications.matching(customerId, contractId, status, month), pageable)
                 .map(mapper::toResponse);
-    }
-
-    /** Фильтры добавляются только для заданных параметров; null-параметр в JPQL PostgreSQL не типизирует. */
-    private static Specification<Invoice> matching(UUID customerId, UUID contractId,
-                                                   InvoiceStatus status, LocalDate period) {
-        return (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            if (customerId != null) {
-                predicates.add(cb.equal(root.get("customerId"), customerId));
-            }
-            if (contractId != null) {
-                predicates.add(cb.equal(root.get("contractId"), contractId));
-            }
-            if (status != null) {
-                predicates.add(cb.equal(root.get("status"), status));
-            }
-            if (period != null) {
-                predicates.add(cb.equal(root.get("period"), period));
-            }
-            return cb.and(predicates.toArray(Predicate[]::new));
-        };
     }
 
     @Transactional(readOnly = true)
