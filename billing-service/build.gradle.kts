@@ -34,7 +34,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
-    implementation("org.springframework.boot:spring-boot-docker-compose")
+    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
+    implementation("org.apache.poi:poi-ooxml:5.5.1")
+    implementation("net.datafaker:datafaker:2.7.0")
     runtimeOnly("org.postgresql:postgresql")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
@@ -43,7 +45,18 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+// compose.yaml и .env лежат в корне репозитория, а не в billing-service/.
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    workingDir = rootProject.projectDir
+}
+
+// Точка входа для Testcontainers-запуска лежит в test-классах, а не в main.
+tasks.named<JavaExec>("bootTestRun") {
+    mainClass.set("io.github.k1mvasyok.billing.TestBillingApplication")
 }
 
 tasks.withType<Test> {

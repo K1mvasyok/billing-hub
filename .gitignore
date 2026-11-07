@@ -15,3 +15,17 @@ out/
 # OS
 Thumbs.db
 .DS_Store
+
+# Logs, heap dumps, generated exports
+*.log
+*.hprof
+*.dump
+*.backup
+*.xlsx
+
+# Editor settings
+.vscode/
+
+# Env files: only the example is committed
+.env.*
+!.env.example

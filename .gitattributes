@@ -1,0 +1,6 @@
+# Нормализация окончаний строк: в репозитории LF, Windows-клоны получают то же самое.
+* text=auto
+/gradlew text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.jar binary
