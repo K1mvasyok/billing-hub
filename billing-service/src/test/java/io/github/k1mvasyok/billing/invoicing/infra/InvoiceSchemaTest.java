@@ -2,6 +2,7 @@ package io.github.k1mvasyok.billing.invoicing.infra;
 
 import io.github.k1mvasyok.billing.TestcontainersConfiguration;
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -30,6 +31,7 @@ class InvoiceSchemaTest {
 
     /** BR-04: один обычный счёт на договор и период. */
     @Test
+    @DisplayName("BR-04: второй обычный счёт на договор и период запрещён индексом")
     void rejectsSecondRegularInvoiceForSameContractAndPeriod() {
         UUID contractId = newContract();
         insertInvoice(contractId, NOVEMBER, "REGULAR", "ISSUED");
@@ -40,6 +42,7 @@ class InvoiceSchemaTest {
 
     /** BR-04: отменённый обычный счёт не занимает слот, можно выставить новый. */
     @Test
+    @DisplayName("BR-04: после отмены обычного счёта можно выставить новый на тот же период")
     void allowsNewRegularInvoiceAfterPreviousWasCancelled() {
         UUID contractId = newContract();
         insertInvoice(contractId, NOVEMBER, "REGULAR", "CANCELLED");
@@ -50,6 +53,7 @@ class InvoiceSchemaTest {
 
     /** BR-05: исправления идут отдельными корректировочными счетами, рядом с обычным. */
     @Test
+    @DisplayName("BR-05: корректировка и обычный счёт могут стоять в одном периоде")
     void allowsCorrectionInTheSamePeriodAsRegularInvoice() {
         UUID contractId = newContract();
         insertInvoice(contractId, NOVEMBER, "REGULAR", "ISSUED");
