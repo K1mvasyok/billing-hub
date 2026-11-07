@@ -1,19 +1,18 @@
 # CLAUDE.md — billing-hub
 
-Pet project: B2B subscription billing on Java 25 / Spring Boot 4. Plan and business rules: docs/PLAN.md (BR-01…BR-18). Talk to me in Russian; code and docs in English, comments in Russian, commits in English.
+Pet project: B2B subscription billing on Java 25 / Spring Boot 4. Plan and business rules: docs/PLAN.md (BR-01…BR-18). Talk to me in Russian; code, commits and README in English, comments in Russian; ADRs and docs/PLAN.md in Russian.
 
 ## Commands
 - Build and all checks: `./gradlew check`
-- Run locally: `docker compose up -d` then `./gradlew :billing-service:bootRun`
+- Run locally: `./gradlew :billing-service:bootRun` (Spring Boot starts PostgreSQL from compose.yaml itself)
 - Run with Testcontainers instead of compose: `./gradlew :billing-service:bootTestRun`
 - One test class: `./gradlew :billing-service:test --tests "*ProrationCalculatorTest"`
-- Format: `./gradlew spotlessApply`
 
 ## Architecture
-- Modular monolith in billing-service; packages by feature: customers, contracts, invoicing, payments, penalties, dunning, reporting, integration, shared.
+- Modular monolith in billing-service, packages by feature. Current modules: customers, contracts, invoicing, shared. `demo` is a tool for the demo profile, outside the module scheme. Planned: payments, penalties, dunning, reporting, integration.
 - Inside a module: api (public interface + record DTOs), web, domain (pure Java, no Spring), app (transactional services), infra.
-- A module may use another module only through its `api` package or events. ArchUnit tests enforce this.
-- Satellites: accounting-stub (Kafka consumer app), billing-mcp (Spring AI MCP server, read-only via REST).
+- A module may use another module only through its `api` package or events. `ModuleBoundaryTest` (ArchUnit) enforces this for the existing modules.
+- Planned satellites: accounting-stub (Kafka consumer app), billing-mcp (Spring AI MCP server, read-only via REST).
 
 ## Rules
 - Money: BigDecimal only, numeric(19,2), HALF_UP at line level; never call setScale without a RoundingMode.
@@ -34,3 +33,4 @@ Pet project: B2B subscription billing on Java 25 / Spring Boot 4. Plan and busin
 4. Keep the diff focused: do not reformat or touch unrelated files, do not delete comments.
 5. Summarize: what changed, how to verify, decisions made (for the PR description).
 6. Algorithms I write myself (you review only): proration, FIFO allocation, penalty calculation, outbox relay, owner check.
+7. Commit and push only when I explicitly ask in the current message.
