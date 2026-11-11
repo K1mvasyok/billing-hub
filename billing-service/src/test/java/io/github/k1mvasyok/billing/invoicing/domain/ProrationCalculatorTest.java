@@ -165,6 +165,15 @@ class ProrationCalculatorTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    @DisplayName("Нет цены на часть периода внутри месяца — исключение, а не тихий пропуск")
+    void gapInPricesInsideMonthIsRejected() {
+        // Цена есть только с 1 по 15 ноября, с 15 по 30 ноября покрытия нет
+        assertThatThrownBy(() -> ProrationCalculator.prorate(NOVEMBER_2026,
+                period("2026-11-01", "2026-12-01"), 1, prices(price("2026-11-01", "2026-11-15", "3000.00"))))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
     private static ValidityPeriod period(String from, String to) {
         return new ValidityPeriod(LocalDate.parse(from), to == null ? null : LocalDate.parse(to));
     }
