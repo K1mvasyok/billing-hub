@@ -1,42 +1,42 @@
 # billing-hub
 
-Pet project: B2B subscription billing on Java 25 and Spring Boot 4.
+Мой pet-проект: биллинг подписок для B2B на Java 25 и Spring Boot 4.
 
-Clients (organisations and sole traders) hold contracts. A contract has items: a plan, a quantity and its own validity period. Plan prices change over time. The service invoices contracts month by month, pro-rated by days and by price changes inside the month.
+Клиенты (организации и ИП) заключают договоры. В договоре есть позиции: тарифный план, количество и свой срок действия. Цены тарифов меняются со временем. Сервис каждый месяц выставляет по договорам счета: пропорционально дням и с учётом смены цены внутри месяца.
 
-The business rules are numbered BR-01 … BR-18 in [docs/PLAN.md](docs/PLAN.md) (in Russian). Each implemented rule is named in the tests that check it.
+Бизнес-правила пронумерованы BR-01 … BR-18 в [docs/PLAN.md](docs/PLAN.md). Номер каждого реализованного правила стоит в названии теста, который его проверяет.
 
-## Status
+## Статус
 
-| Stage | Scope | State |
+| Этап | Что входит | Состояние |
 |---|---|---|
-| M0 | Skeleton: Gradle, Liquibase, Testcontainers, CI, health check | done |
-| M1 | Customers, plans and prices, contracts and items, Envers audit | done |
-| M2 | Invoicing: pro-rating, billing runs, period closing, cancellation, corrections, XLSX export, demo data | in progress |
-| M3+ | Payments and allocation, penalties, Kafka outbox, security, metrics, MCP | planned |
+| M0 | Каркас: Gradle, Liquibase, Testcontainers, CI, health check | готово |
+| M1 | Клиенты, тарифы и цены, договоры и позиции, аудит через Envers | готово |
+| M2 | Счета: пропорциональный расчёт, запуски биллинга, закрытие периода, отмена, корректировки, выгрузка в XLSX, демо-данные | в работе |
+| M3+ | Платежи и разноска, пени, Kafka через outbox, безопасность, метрики, MCP | в планах |
 
-M2 is still open: the check of BR-18 on 200 000 rows (not done yet), repeated performance measurements on the demo data, and an index for the global list of overdue invoices (see [docs/perf.md](docs/perf.md)).
+Что осталось в M2: проверить выгрузку на 200 000 строк (BR-18), повторить замеры на демо-данных и добавить индекс для общего списка просроченных счетов (подробности в [docs/perf.md](docs/perf.md)).
 
-## Stack
+## Стек
 
-Java 25 (Gradle toolchain), Spring Boot 4.1, Spring Web MVC, Spring Data JPA with Hibernate 7, PostgreSQL 17, Liquibase, Hibernate Envers, MapStruct, springdoc-openapi, Apache POI (SXSSF, streaming XLSX), Datafaker (demo data), Spring Boot Docker Compose support, Testcontainers 2, ArchUnit, JUnit 6, AssertJ, Gradle 9 (Kotlin DSL), GitHub Actions.
+Java 25 (toolchain Gradle), Spring Boot 4.1, Spring Web MVC, Spring Data JPA и Hibernate 7, PostgreSQL 17, Liquibase, Hibernate Envers, MapStruct, springdoc-openapi, Apache POI (SXSSF, потоковая запись XLSX), Datafaker (демо-данные), поддержка Docker Compose в Spring Boot, Testcontainers 2, ArchUnit, JUnit 6, AssertJ, Gradle 9 (Kotlin DSL), GitHub Actions.
 
-## Run locally
+## Как запустить
 
-Requirements: JDK 25, Docker.
+Нужны JDK 25 и Docker.
 
 ```bash
-cp .env.example .env          # set POSTGRES_PASSWORD for local use
-./gradlew :billing-service:bootRun   # Boot starts PostgreSQL from compose.yaml on localhost:5433, then the service
+cp .env.example .env                  # задать POSTGRES_PASSWORD для локального запуска
+./gradlew :billing-service:bootRun    # Spring Boot сам поднимет PostgreSQL из compose.yaml на localhost:5433
 ```
 
-Spring Boot starts and stops the Compose containers together with the service. To run the service without Docker Compose, use `bootTestRun` (see below).
+Spring Boot запускает и останавливает контейнеры Compose вместе с сервисом. Чтобы обойтись без Docker Compose, используй `bootTestRun` (ниже).
 
-The service listens on `http://localhost:8080`. Swagger UI: `http://localhost:8080/swagger-ui.html`. Ready-made requests are in [docs/api-examples.http](docs/api-examples.http).
+Сервис слушает `http://localhost:8080`, Swagger UI: `http://localhost:8080/swagger-ui.html`. Готовые запросы лежат в [docs/api-examples.http](docs/api-examples.http).
 
-Without Docker Compose, `./gradlew :billing-service:bootTestRun` starts the service with PostgreSQL 17 from Testcontainers. Docker must be running.
+Без Docker Compose: `./gradlew :billing-service:bootTestRun` запускает сервис с PostgreSQL 17 из Testcontainers. Docker при этом должен быть запущен.
 
-To run the built jar, point it at an existing PostgreSQL. Compose support is a development dependency and is not in the jar:
+Собранный jar подключается к уже работающему PostgreSQL. Поддержка Compose нужна только для разработки и в jar не попадает:
 
 ```bash
 ./gradlew :billing-service:bootJar
@@ -46,96 +46,90 @@ SPRING_DATASOURCE_PASSWORD=change-me-local-only \
 java -jar billing-service/build/libs/billing-service-0.0.1-SNAPSHOT.jar
 ```
 
-## Demo data
+## Демо-данные
 
-The `demo` profile fills the database with generated customers, plans and contracts (Datafaker). Sizes are set by `billing.demo.customers` (default 10000) and `billing.demo.contracts` (default 15000):
+Профиль `demo` заполняет базу сгенерированными клиентами, тарифами и договорами (Datafaker). Объём задают `billing.demo.customers` (по умолчанию 10000) и `billing.demo.contracts` (по умолчанию 15000):
 
 ```bash
 ./gradlew :billing-service:bootRun --args='--spring.profiles.active=demo --billing.demo.customers=1000 --billing.demo.contracts=1500'
 ```
 
-Measurements taken on this data, and how to reproduce them, are in [docs/perf.md](docs/perf.md).
+Замеры на этих данных — в [docs/perf.md](docs/perf.md).
 
-## Build and checks
+## Сборка и проверки
 
 ```bash
-./gradlew check                                          # all tests, JaCoCo report
+./gradlew check                                          # все тесты и отчёт JaCoCo
 ./gradlew :billing-service:test --tests "*ProrationCalculatorTest"
 ```
 
-Tests run against a real PostgreSQL in Testcontainers, so Docker must be running. An H2 database does not support the exclusion constraint and the partial indexes used here.
+Тесты работают с настоящим PostgreSQL в Testcontainers, поэтому нужен запущенный Docker. H2 не подходит: он не поддерживает exclusion constraint и частичные индексы, которые здесь используются.
 
-## Modules
+## Модули
 
-The code is a modular monolith in `billing-service`, with packages by feature. Inside a module: `api` (public interface and DTOs), `web` (controllers), `domain` (entities and pure logic), `app` (transactional services), `infra` (repositories). A module uses another module only through its `api` package. Shared value types (`ValidityPeriod`, `PriceCoverage`) live in `shared`.
+Код — модульный монолит в `billing-service`, пакеты разбиты по предметным областям. Внутри модуля: `api` (публичный интерфейс и DTO), `web` (контроллеры), `domain` (сущности и чистая логика), `app` (сервисы с транзакциями), `infra` (репозитории). Модуль обращается к другому модулю только через его пакет `api`. Общие типы значений (`ValidityPeriod`, `PriceCoverage`) лежат в `shared`.
 
-| Module | Responsibility |
+| Модуль | За что отвечает |
 |---|---|
-| `customers` | Clients, tax ID rules, search |
-| `contracts` | Plans, prices by period, contracts, items, lifecycle; `ContractDirectory` for invoicing |
-| `invoicing` | Billing periods, billing runs, invoices, pro-rating, corrections |
-| `shared` | Errors (RFC 9457 ProblemDetail), id generator, persistence base, period types |
+| `customers` | Клиенты, правила ИНН, поиск |
+| `contracts` | Тарифы, цены по периодам, договоры, позиции, жизненный цикл; `ContractDirectory` для выставления счетов |
+| `invoicing` | Расчётные периоды, запуски биллинга, счета, пропорциональный расчёт, корректировки |
+| `shared` | Ошибки (RFC 9457 ProblemDetail), генератор id, базовые классы для JPA, типы периодов |
 
-See [ADR 0001](docs/adr/0001-modular-monolith.md). The boundary rule is checked by the ArchUnit test `ModuleBoundaryTest` for the existing modules (`customers`, `contracts`, `invoicing`).
+Почему так — в [ADR 0001](docs/adr/0001-modular-monolith.md). Правило границ для существующих модулей (`customers`, `contracts`, `invoicing`) проверяет ArchUnit-тест `ModuleBoundaryTest`.
 
-## API overview
+## API
 
-All endpoints are under `/api/v1`. Money is sent as a string (`"1500.00"`). Errors use ProblemDetail, and each business error has its own code in `type`, for example `urn:billing-hub:problem:period-closed`.
+Все эндпоинты под `/api/v1`. Деньги передаются строкой (`"1500.00"`). Ошибки приходят в формате ProblemDetail, у каждой бизнес-ошибки свой код в `type`, например `urn:billing-hub:problem:period-closed`.
 
-| Area | Endpoints |
+| Раздел | Эндпоинты |
 |---|---|
-| Customers | `POST /customers`, `GET /customers` (filters: `query`, `status`), `GET/PATCH /customers/{id}` |
-| Plans | `POST /plans`, `GET /plans`, `POST /plans/{id}/prices` |
-| Contracts | `POST /contracts`, `GET /contracts` (filters: `customerId`, `status`), `GET /contracts/{id}`, `POST /contracts/{id}/activate`, `POST /contracts/{id}/terminate`, `POST /contracts/{id}/items`, `PATCH /contracts/{id}/items/{itemId}` |
-| Billing periods | `GET /billing-periods`, `POST /billing-periods/{yyyy-MM}/close` |
-| Billing runs | `POST /billing-runs` (202, runs in the background), `GET /billing-runs/{id}` |
-| Invoices | `GET /invoices` (filters: `customerId`, `contractId`, `status`, `period`), `GET /invoices/export.xlsx` (same filters, streamed XLSX), `GET /invoices/{id}`, `POST /invoices/{id}/cancel`, `POST /invoices/corrections` |
+| Клиенты | `POST /customers`, `GET /customers` (фильтры: `query`, `status`), `GET/PATCH /customers/{id}` |
+| Тарифы | `POST /plans`, `GET /plans`, `POST /plans/{id}/prices` |
+| Договоры | `POST /contracts`, `GET /contracts` (фильтры: `customerId`, `status`), `GET /contracts/{id}`, `POST /contracts/{id}/activate`, `POST /contracts/{id}/terminate`, `POST /contracts/{id}/items`, `PATCH /contracts/{id}/items/{itemId}` |
+| Расчётные периоды | `GET /billing-periods`, `POST /billing-periods/{yyyy-MM}/close` |
+| Запуски биллинга | `POST /billing-runs` (202, идёт в фоне), `GET /billing-runs/{id}` |
+| Счета | `GET /invoices` (фильтры: `customerId`, `contractId`, `status`, `period`), `GET /invoices/export.xlsx` (те же фильтры, XLSX отдаётся потоком), `GET /invoices/{id}`, `POST /invoices/{id}/cancel`, `POST /invoices/corrections` |
 
-Lists are paginated with `page`, `size` (at most 100) and `sort`.
+Списки отдаются постранично: `page`, `size` (не больше 100) и `sort`.
 
-## Business rules implemented
+## Какие бизнес-правила уже работают
 
-| Rule | What it means here | Where it is checked |
+| Правило | Что значит | Где проверяется |
 |---|---|---|
-| BR-01 | Money is `BigDecimal` / `numeric(19,2)`; each invoice line is rounded HALF_UP to cents | `ProrationCalculatorTest` |
-| BR-02 | Line = monthly price × quantity × days / days in month | `ProrationCalculatorTest`, `BillingRunLifecycleTest` |
-| BR-03 | A price change inside the month splits the month into lines | `ProrationCalculatorTest` |
-| BR-04 | One regular invoice per contract and period, unless cancelled; re-runs skip such contracts | `InvoiceSchemaTest`, `BillingRunLifecycleTest` |
-| BR-05 | A closed period and all earlier periods are locked; corrections go into an open period | `BillingPeriodLockTest`, `BillingRunLifecycleTest` |
-| BR-06 | Only `ISSUED → CANCELLED` is possible now, once and only in an open period; `PARTIALLY_PAID` and `PAID` come with payments in M3 | `InvoiceCancellationTest` |
-| BR-18 | The invoice register is exported to XLSX as a stream (SXSSF). The check on 200 000 rows is not done yet | `InvoiceExportTest` |
+| BR-01 | Деньги — `BigDecimal` / `numeric(19,2)`; каждая строка счёта округляется HALF_UP до копеек | `ProrationCalculatorTest` |
+| BR-02 | Строка = месячная цена × количество × дни / дней в месяце | `ProrationCalculatorTest`, `BillingRunLifecycleTest` |
+| BR-03 | Смена цены внутри месяца делит месяц на несколько строк | `ProrationCalculatorTest` |
+| BR-04 | Один обычный счёт на договор и период, если он не отменён; повторный запуск такие договоры пропускает | `InvoiceSchemaTest`, `BillingRunLifecycleTest` |
+| BR-05 | Закрытый период и все более ранние заблокированы; корректировки идут в открытый период | `BillingPeriodLockTest`, `BillingRunLifecycleTest` |
+| BR-06 | Сейчас возможен только переход `ISSUED → CANCELLED`, один раз и только в открытом периоде; `PARTIALLY_PAID` и `PAID` появятся вместе с платежами в M3 | `InvoiceCancellationTest` |
+| BR-18 | Реестр счетов выгружается в XLSX потоком (SXSSF). Проверка на 200 000 строк ещё не сделана | `InvoiceExportTest` |
 
-Other rules from the plan (payments, FIFO allocation, penalties, dunning, events, security) are not implemented yet.
+Остальные правила из плана (платежи, разноска FIFO, пени, напоминания о долге, события, безопасность) пока не реализованы.
 
-## Known limitations
+## Известные ограничения
 
-- **Termination does not cut items.** A terminated contract is still billed for the full validity of its items. This needs a decision before the first real billing cycle.
-- **Cancellation ignores allocations.** There are no payments yet. When M3 adds them, cancellation must be refused for invoices that have payments.
-- **Concurrent runs for one period.** The check "no running run for this period" and the insert are not atomic. Two simultaneous requests can start two runs. The unique index on invoices still prevents duplicate regular invoices, but the run statistics would be wrong.
-- **Failed runs are not resumed.** A run that was still `RUNNING` when the service stopped is marked `FAILED` at startup. Re-run the period to finish it; contracts already invoiced are skipped.
-- **Invoice numbers can have gaps.** The number is taken from a sequence before the invoice is saved, so a rolled-back transaction leaves a gap.
-- **`closed_by` is empty** until authentication (M6).
-- **No overdue filter** on `GET /invoices` yet; it needs payments.
+- **Расторжение не обрезает позиции.** Расторгнутый договор выставляется на весь срок своих позиций. Это нужно решить до первого настоящего расчётного цикла.
+- **Отмена счёта не смотрит на разноску.** Платежей пока нет. Когда они появятся в M3, отмену счёта с оплатами нужно будет запрещать.
+- **Одновременные запуски за один период.** Проверка «нет идущего запуска за этот период» и вставка нового запуска не атомарны: два одновременных запроса могут запустить два прогона. Уникальный индекс на счетах не даст создать дубли обычных счетов, но статистика запусков будет неверной.
+- **Упавшие запуски не продолжаются.** Запуск, который остался в `RUNNING` при остановке сервиса, при старте помечается `FAILED`. Чтобы довести период, запусти его заново: договоры, по которым счёт уже есть, пропускаются.
+- **В номерах счетов бывают пропуски.** Номер берётся из последовательности до сохранения счёта, поэтому откат транзакции оставляет дырку.
+- **`closed_by` пустой** до появления аутентификации (M6).
+- **Нет фильтра просроченных** в `GET /invoices`: он появится вместе с платежами.
 
-## Tests
+## Тесты
 
-- Unit tests for pure logic: pro-rating, price coverage, validity periods, tax ID, status transitions.
-- Slice tests: JPA constraints, web layer with mocks.
-- Integration tests through HTTP on PostgreSQL: contract lifecycle, billing runs, period locking, corrections, invoice cancellation, XLSX export.
-- Architecture: `ModuleBoundaryTest` (ArchUnit) checks that modules use each other only through `api`.
+- Unit-тесты чистой логики: пропорциональный расчёт, покрытие ценами, сроки действия, ИНН, переходы статусов.
+- Slice-тесты: ограничения JPA и базы, веб-слой с моками.
+- Интеграционные тесты через HTTP на PostgreSQL: жизненный цикл договора, запуски биллинга, блокировка периодов, корректировки, отмена счёта, выгрузка XLSX.
+- Архитектура: `ModuleBoundaryTest` (ArchUnit) проверяет, что модули обращаются друг к другу только через `api`.
 
-Some tests close billing periods. Such a test uses `@DirtiesContext`, so its locked periods do not leak into other test classes.
+Часть тестов закрывает расчётные периоды. Такие тесты помечены `@DirtiesContext`, чтобы закрытые периоды не мешали другим тестовым классам.
 
-## How AI was used
+## Как я использую ИИ
 
-The code was written with Claude Code, step by step against [docs/PLAN.md](docs/PLAN.md). The author set the plan, the business rules and the module boundaries, and reviewed each change. `ProrationCalculator` and its design (cutting by price periods, rounding per line, failing on a price gap) were written by the author; the assistant only reviewed it. `./gradlew check` runs before each commit.
+Код пишу вместе с Claude Code, шаг за шагом по [docs/PLAN.md](docs/PLAN.md). План, бизнес-правила и границы модулей задаю сам и проверяю каждое изменение. `ProrationCalculator` и его устройство (нарезка месяца по периодам цен, округление каждой строки, ошибка при разрыве цены) написал я сам, ассистент только ревьюил. Перед каждым коммитом прогоняю `./gradlew check`.
 
-## Кратко на русском
+## Лицензия
 
-billing-hub — учебный B2B-биллинг подписок на Java 25 и Spring Boot 4. Клиенты заключают договоры с позициями (тарифный план, количество, свой период). Система ежемесячно выставляет счета пропорционально дням и изменениям цен внутри месяца.
-
-Готово: клиенты, планы с ценами по периодам, договоры с жизненным циклом и аудитом (M1); выставление счетов, закрытие периода, отмена, корректировки и XLSX-выгрузка (M2, частично). Не готово в M2: проверка выгрузки на 200 тыс. строк, повторные замеры на демо-данных, индекс для списка просроченных. Не готово дальше: платежи, пени, Kafka, безопасность, метрики, MCP.
-
-## License
-
-Apache-2.0, see [LICENSE](LICENSE).
+Apache-2.0, см. [LICENSE](LICENSE).

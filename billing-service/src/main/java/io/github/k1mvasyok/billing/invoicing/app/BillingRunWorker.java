@@ -62,7 +62,7 @@ public class BillingRunWorker {
             }
             transactions.executeWithoutResult(status -> finish(runId, true));
         } catch (RuntimeException ex) {
-            log.error("Billing run {} failed", runId, ex);
+            log.error("Запуск биллинга {} завершился ошибкой", runId, ex);
             transactions.executeWithoutResult(status -> finish(runId, false));
         }
     }
@@ -89,7 +89,7 @@ public class BillingRunWorker {
             } catch (IllegalStateException ex) {
                 // Нет цены на часть периода: счёт по договору не выставляем, остальные идут дальше.
                 errors++;
-                log.warn("Contract {} not billed: {}", contract.contractId(), ex.getMessage());
+                log.warn("По договору {} счёт не выставлен: {}", contract.contractId(), ex.getMessage());
             }
         }
         invoices.flush();

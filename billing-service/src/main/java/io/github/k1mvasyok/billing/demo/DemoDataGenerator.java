@@ -64,14 +64,14 @@ public class DemoDataGenerator implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         Long existing = jdbc.queryForObject("select count(*) from customer", Long.class);
         if (existing != null && existing > 0) {
-            log.info("Demo data already present ({} customers), skipping generation", existing);
+            log.info("Демо-данные уже есть ({} клиентов), генерацию пропускаю", existing);
             return;
         }
         Instant started = Instant.now();
         List<UUID> plans = insertPlans();
         List<UUID> customers = insertCustomers();
         insertContracts(plans, customers);
-        log.info("Demo data inserted: {} customers, {} contracts in {}",
+        log.info("Демо-данные добавлены: {} клиентов, {} договоров за {}",
                 customerCount, contractCount, Duration.between(started, Instant.now()));
         runBillingForYear();
     }
@@ -183,7 +183,7 @@ public class DemoDataGenerator implements ApplicationRunner {
             Instant started = Instant.now();
             BillingRunResponse run = billingRuns.start(period.toString());
             BillingRunResponse finished = awaitFinished(run.id());
-            log.info("Billing run {}: status={}, contracts={}, created={}, skipped={}, errors={}, duration={}",
+            log.info("Запуск биллинга {}: статус={}, договоров={}, создано={}, пропущено={}, ошибок={}, время={}",
                     period, finished.status(), finished.contractsTotal(), finished.invoicesCreated(),
                     finished.skipped(), finished.errors(), Duration.between(started, Instant.now()));
         }

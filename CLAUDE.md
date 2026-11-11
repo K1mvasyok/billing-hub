@@ -1,36 +1,36 @@
 # CLAUDE.md — billing-hub
 
-Pet project: B2B subscription billing on Java 25 / Spring Boot 4. Plan and business rules: docs/PLAN.md (BR-01…BR-18). Talk to me in Russian; code, commits and README in English, comments in Russian; ADRs and docs/PLAN.md in Russian.
+Pet-проект: биллинг подписок для B2B на Java 25 и Spring Boot 4. План и бизнес-правила: docs/PLAN.md (BR-01…BR-18). Общаемся на русском. README, документация, комментарии и названия тестов (`@DisplayName`) — на русском. Идентификаторы в коде — на английском. Сообщения коммитов — на русском.
 
-## Commands
-- Build and all checks: `./gradlew check`
-- Run locally: `./gradlew :billing-service:bootRun` (Spring Boot starts PostgreSQL from compose.yaml itself)
-- Run with Testcontainers instead of compose: `./gradlew :billing-service:bootTestRun`
-- One test class: `./gradlew :billing-service:test --tests "*ProrationCalculatorTest"`
+## Команды
+- Сборка и все проверки: `./gradlew check`
+- Локальный запуск: `./gradlew :billing-service:bootRun` (Spring Boot сам поднимает PostgreSQL из compose.yaml)
+- Запуск на Testcontainers вместо compose: `./gradlew :billing-service:bootTestRun`
+- Один тестовый класс: `./gradlew :billing-service:test --tests "*ProrationCalculatorTest"`
 
-## Architecture
-- Modular monolith in billing-service, packages by feature. Current modules: customers, contracts, invoicing, shared. `demo` is a tool for the demo profile, outside the module scheme. Planned: payments, penalties, dunning, reporting, integration.
-- Inside a module: api (public interface + record DTOs), web, domain (pure Java, no Spring), app (transactional services), infra.
-- A module may use another module only through its `api` package or events. `ModuleBoundaryTest` (ArchUnit) enforces this for the existing modules.
-- Planned satellites: accounting-stub (Kafka consumer app), billing-mcp (Spring AI MCP server, read-only via REST).
+## Архитектура
+- Модульный монолит в billing-service, пакеты по предметным областям. Сейчас есть модули customers, contracts, invoicing, shared. `demo` — инструмент для профиля demo, вне модульной схемы. В планах: payments, penalties, dunning, reporting, integration.
+- Внутри модуля: api (публичный интерфейс и DTO-record), web, domain (чистая Java, без Spring), app (сервисы с транзакциями), infra.
+- Модуль обращается к другому модулю только через его пакет `api` или события. Для существующих модулей это проверяет `ModuleBoundaryTest` (ArchUnit).
+- В планах отдельные приложения: accounting-stub (консьюмер Kafka) и billing-mcp (MCP-сервер на Spring AI, только чтение через REST).
 
-## Rules
-- Money: BigDecimal only, numeric(19,2), HALF_UP at line level; never call setScale without a RoundingMode.
-- Schema changes only via a NEW Liquibase changeset; never edit an applied changeset.
-- Every business rule BR-xx has a test that names it.
-- Domain logic first as a pure class with a unit test, then wiring.
-- Kafka events are written to outbox_event in the same transaction; never call KafkaTemplate from domain services.
-- No Lombok. Records for DTOs and events.
-- Spring Boot 4: use spring-boot-starter-webmvc (not -web), Jackson 3 (tools.jackson, JsonMapper), technology-specific test starters, Testcontainers 2 artifact/package names.
-- Before adding a dependency: ask me, and check Boot 4 / Jackson 3 compatibility.
-- No secrets in the repo; config via env vars and .env (gitignored).
-- No real personal or company data; demo data only via Datafaker.
+## Правила
+- Деньги: только BigDecimal, numeric(19,2), округление HALF_UP на уровне строки; setScale всегда с RoundingMode.
+- Схема меняется только НОВЫМ changeset'ом Liquibase; применённые changeset'ы не трогать.
+- У каждого бизнес-правила BR-xx есть тест, в названии которого стоит его номер.
+- Доменная логика сначала пишется чистым классом с unit-тестом, потом подключается.
+- События Kafka пишутся в outbox_event в той же транзакции; KafkaTemplate из доменных сервисов не вызывать.
+- Без Lombok. DTO и события — record.
+- Spring Boot 4: spring-boot-starter-webmvc (не -web), Jackson 3 (tools.jackson, JsonMapper), тестовые стартеры под конкретную технологию, имена артефактов и пакетов Testcontainers 2.
+- Перед добавлением зависимости спросить меня и проверить совместимость с Boot 4 и Jackson 3.
+- Никаких секретов в репозитории; настройки через переменные окружения и .env (он в .gitignore).
+- Никаких реальных персональных данных и данных компаний; демо-данные только через Datafaker.
 
-## Workflow
-1. For a task: restate it, list assumptions, propose a plan and test cases. Wait for my OK.
-2. Write tests first for domain logic.
-3. Implement in small steps; run `./gradlew check` before saying "done".
-4. Keep the diff focused: do not reformat or touch unrelated files, do not delete comments.
-5. Summarize: what changed, how to verify, decisions made (for the PR description).
-6. Algorithms I write myself (you review only): proration, FIFO allocation, penalty calculation, outbox relay, owner check.
-7. Commit and push only when I explicitly ask in the current message.
+## Порядок работы
+1. По задаче: пересказать её, перечислить допущения, предложить план и тест-кейсы. Дождаться моего «ок».
+2. Для доменной логики сначала тесты.
+3. Делать маленькими шагами; перед словом «готово» прогнать `./gradlew check`.
+4. Дифф держать узким: не переформатировать и не трогать посторонние файлы, не удалять комментарии.
+5. В конце: что изменено, как проверить, какие решения приняты (для описания коммита).
+6. Алгоритмы, которые я пишу сам (ты только ревьюишь): пропорциональный расчёт, разноска FIFO, расчёт пеней, outbox relay, проверка владельца.
+7. Коммит и push — только когда я прямо прошу об этом в текущем сообщении.
