@@ -52,6 +52,10 @@ public class ApiExceptionHandler {
             return problem(HttpStatus.CONFLICT, "plan-price-overlap",
                     "Период цены пересекается с уже существующим периодом этого плана");
         }
+        if (message != null && message.contains("ux_billing_run_running_period")) {
+            return problem(HttpStatus.CONFLICT, "billing-run-in-progress",
+                    "Выставление за этот период уже идёт");
+        }
         return problem(HttpStatus.CONFLICT, "constraint-violation",
                 "Нарушено ограничение данных: проверьте уникальность и связанные записи");
     }

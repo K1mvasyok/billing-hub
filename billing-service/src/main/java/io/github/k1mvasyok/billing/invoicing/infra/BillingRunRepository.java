@@ -12,5 +12,7 @@ public interface BillingRunRepository extends JpaRepository<BillingRun, UUID> {
 
     boolean existsByPeriodAndStatus(LocalDate period, BillingRunStatus status);
 
+    boolean existsByPeriodLessThanEqualAndStatus(LocalDate period, BillingRunStatus status);
+
     List<BillingRun> findByStatus(BillingRunStatus status);
 }

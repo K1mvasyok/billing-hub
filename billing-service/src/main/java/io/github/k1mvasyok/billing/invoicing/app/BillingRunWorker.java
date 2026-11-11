@@ -14,6 +14,7 @@ import io.github.k1mvasyok.billing.invoicing.infra.BillingRunRepository;
 import io.github.k1mvasyok.billing.invoicing.infra.InvoiceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -32,28 +33,33 @@ import java.util.UUID;
 @Component
 public class BillingRunWorker {
 
-    static final int BATCH_SIZE = 500;
-
     private static final Logger log = LoggerFactory.getLogger(BillingRunWorker.class);
 
     private final ContractDirectory contracts;
     private final InvoiceRepository invoices;
     private final BillingRunRepository runs;
+    private final BillingPeriodService periods;
+    private final BillingLock billingLock;
     private final TransactionTemplate transactions;
+    private final int batchSize;
 
-    public BillingRunWorker(ContractDirectory contracts, InvoiceRepository invoices,
-                            BillingRunRepository runs, TransactionTemplate transactions) {
+    public BillingRunWorker(ContractDirectory contracts, InvoiceRepository invoices, BillingRunRepository runs,
+                            BillingPeriodService periods, BillingLock billingLock, TransactionTemplate transactions,
+                            @Value("${billing.run.batch-size:500}") int batchSize) {
         this.contracts = contracts;
         this.invoices = invoices;
         this.runs = runs;
+        this.periods = periods;
+        this.billingLock = billingLock;
         this.transactions = transactions;
+        this.batchSize = batchSize;
     }
 
     public void run(UUID runId, LocalDate period) {
         try {
             UUID afterId = null;
             while (true) {
-                List<BillableContract> batch = contracts.findBillable(YearMonth.from(period), afterId, BATCH_SIZE);
+                List<BillableContract> batch = contracts.findBillable(YearMonth.from(period), afterId, batchSize);
                 if (batch.isEmpty()) {
                     break;
                 }
@@ -68,6 +74,9 @@ public class BillingRunWorker {
     }
 
     private void processBatch(UUID runId, LocalDate period, List<BillableContract> batch) {
+        // Период могли закрыть между пачками: тогда пачка не пишет счета, а запуск завершается FAILED.
+        billingLock.acquire();
+        periods.requireOpen(period);
         int created = 0;
         int skipped = 0;
         int errors = 0;

@@ -24,13 +24,15 @@ public class InvoiceService {
 
     private final InvoiceRepository invoices;
     private final BillingPeriodService periods;
+    private final BillingLock billingLock;
     private final ContractDirectory contracts;
     private final InvoicingMapper mapper;
 
-    public InvoiceService(InvoiceRepository invoices, BillingPeriodService periods,
+    public InvoiceService(InvoiceRepository invoices, BillingPeriodService periods, BillingLock billingLock,
                           ContractDirectory contracts, InvoicingMapper mapper) {
         this.invoices = invoices;
         this.periods = periods;
+        this.billingLock = billingLock;
         this.contracts = contracts;
         this.mapper = mapper;
     }
@@ -53,6 +55,7 @@ public class InvoiceService {
      * Разноски по счёту появятся в M3: тогда отмена будет запрещена, если по счёту есть оплаты.
      */
     public InvoiceResponse cancel(UUID id) {
+        billingLock.acquire();
         Invoice invoice = load(id);
         periods.requireOpen(invoice.getPeriod());
         invoice.cancel();
@@ -62,6 +65,7 @@ public class InvoiceService {
     /** Корректировка в открытом периоде: отдельный счёт, сумма может быть отрицательной (BR-05). */
     public InvoiceResponse createCorrection(CorrectionRequest request) {
         LocalDate period = BillingPeriodService.parseMonth(request.period());
+        billingLock.acquire();
         periods.requireOpen(period);
         ContractRef contract = contracts.requireContract(request.contractId());
         LocalDate issueDate = period.withDayOfMonth(period.lengthOfMonth());

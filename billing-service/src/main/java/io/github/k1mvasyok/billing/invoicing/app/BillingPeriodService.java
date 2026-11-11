@@ -22,12 +22,14 @@ public class BillingPeriodService {
 
     private final BillingPeriodRepository periods;
     private final BillingRunRepository runs;
+    private final BillingLock billingLock;
     private final InvoicingMapper mapper;
 
     public BillingPeriodService(BillingPeriodRepository periods, BillingRunRepository runs,
-                                InvoicingMapper mapper) {
+                                BillingLock billingLock, InvoicingMapper mapper) {
         this.periods = periods;
         this.runs = runs;
+        this.billingLock = billingLock;
         this.mapper = mapper;
     }
 
@@ -46,14 +48,17 @@ public class BillingPeriodService {
     }
 
     /**
-     * Закрытие месяца. Пока выполняется расчёт за этот месяц, закрыть нельзя.
+     * Закрытие месяца. Нельзя закрыть месяц, если идёт расчёт за него или за более ранний:
+     * такой расчёт пишет счета в периоды, которые закрытие как раз блокирует.
      * closed_by пока пустой: привязка к пользователю появится с безопасностью (M6).
      */
     public BillingPeriodResponse close(String text) {
         LocalDate period = parseMonth(text);
-        if (runs.existsByPeriodAndStatus(period, BillingRunStatus.RUNNING)) {
+        billingLock.acquire();
+        if (runs.existsByPeriodLessThanEqualAndStatus(period, BillingRunStatus.RUNNING)) {
             throw new BusinessRuleException("billing-run-in-progress",
-                    "За " + YearMonth.from(period) + " идёт выставление счетов, закрыть период нельзя");
+                    "Идёт выставление счетов за период не позже " + YearMonth.from(period)
+                            + ", закрыть период нельзя");
         }
         BillingPeriod billing = periods.findByPeriod(period).orElseGet(() -> new BillingPeriod(period));
         if (billing.getStatus() == BillingPeriodStatus.CLOSED) {

@@ -27,24 +27,28 @@ public class BillingRunService {
     private final BillingRunRepository runs;
     private final BillingPeriodService periods;
     private final BillingRunWorker worker;
+    private final BillingLock billingLock;
     private final TransactionTemplate transactions;
     private final InvoicingMapper mapper;
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
     public BillingRunService(BillingRunRepository runs, BillingPeriodService periods, BillingRunWorker worker,
-                             TransactionTemplate transactions, InvoicingMapper mapper) {
+                             BillingLock billingLock, TransactionTemplate transactions, InvoicingMapper mapper) {
         this.runs = runs;
         this.periods = periods;
         this.worker = worker;
+        this.billingLock = billingLock;
         this.transactions = transactions;
         this.mapper = mapper;
     }
 
     public BillingRunResponse start(String periodText) {
         LocalDate period = BillingPeriodService.parseMonth(periodText);
-        periods.requireOpen(period);
-        // Запись сохраняем и фиксируем до старта фонового потока, иначе он может не увидеть её.
+        // Проверка периода и вставка запуска идут под общей блокировкой: второй старт ждёт коммита первого.
+        // Запись фиксируем до старта фонового потока, иначе он может не увидеть её.
         UUID runId = transactions.execute(status -> {
+            billingLock.acquire();
+            periods.requireOpen(period);
             if (runs.existsByPeriodAndStatus(period, BillingRunStatus.RUNNING)) {
                 throw new BusinessRuleException("billing-run-in-progress",
                         "Выставление за этот период уже идёт");
