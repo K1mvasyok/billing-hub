@@ -142,7 +142,8 @@ public class DemoDataGenerator implements ApplicationRunner {
             UUID contractId = UuidV7.next();
             contractRows.add(new Object[]{
                     contractId, customers.get(random.nextInt(customers.size())), "D-%06d".formatted(i + 1),
-                    Date.valueOf(YEAR_START), Date.valueOf(YEAR_START), Date.valueOf(YEAR_END), now, now});
+                    Date.valueOf(YEAR_START), Date.valueOf(YEAR_START), Date.valueOf(YEAR_END),
+                    Date.valueOf(YEAR_START), now, now});
             int items = 1 + random.nextInt(2);
             for (int item = 0; item < items; item++) {
                 LocalDate from = random.nextInt(10) < 3 ? randomDayIn2026() : YEAR_START;
@@ -161,8 +162,8 @@ public class DemoDataGenerator implements ApplicationRunner {
         if (!contractRows.isEmpty()) {
             jdbc.batchUpdate("""
                             insert into contract (id, customer_id, number, signed_on, valid_from, valid_to, status,
-                                                  payment_term_days, created_at, updated_at, version)
-                            values (?, ?, ?, ?, ?, ?, 'ACTIVE', 14, ?, ?, 0)
+                                                  activated_on, payment_term_days, created_at, updated_at, version)
+                            values (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, 14, ?, ?, 0)
                             """, contractRows);
             contractRows.clear();
         }

@@ -84,8 +84,16 @@ Content-Type: application/json
 ### 9. Активировать (нужна хотя бы одна позиция)
 POST {{base}}/contracts/CONTRACT_ID/activate
 
-### 10. Расторгнуть
+### 10. Расторгнуть с даты. Это первый день без действия договора: при расторжении 2026-07-01
+### последний оплачиваемый день — 2026-06-30. Дата должна быть позже начала договора
+### и не позже его окончания, иначе 409 с type ...:contract-termination-outside-term.
+### Позиции, которые начинаются не раньше этой даты, удаляются из договора.
 POST {{base}}/contracts/CONTRACT_ID/terminate
+Content-Type: application/json
+
+{
+  "effectiveDate": "2026-07-01"
+}
 
 ### 11. Карточка договора с позициями
 GET {{base}}/contracts/CONTRACT_ID

@@ -38,6 +38,33 @@ final class BillingFixtures {
         return createContract(createCustomer(), validFrom, validTo);
     }
 
+    /** План с бессрочной ценой 1500.00 для сценариев, где договор собирается по шагам. */
+    String pricedPlan() throws Exception {
+        String planId = createPlan();
+        addPrice(planId, "2025-01-01", null, "1500.00");
+        return planId;
+    }
+
+    void addItem(String contractId, String planId, int quantity, String from, String to) throws Exception {
+        mockMvc.perform(post("/api/v1/contracts/{id}/items", contractId)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"planId": "%s", "quantity": %d, "validFrom": "%s", "validTo": "%s"}
+                                """.formatted(planId, quantity, from, to)))
+                .andExpect(status().isCreated());
+    }
+
+    void activate(String contractId) throws Exception {
+        mockMvc.perform(post("/api/v1/contracts/{id}/activate", contractId)).andExpect(status().isOk());
+    }
+
+    void terminate(String contractId, String effectiveDate) throws Exception {
+        mockMvc.perform(post("/api/v1/contracts/{id}/terminate", contractId)
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"effectiveDate\": \"%s\"}".formatted(effectiveDate)))
+                .andExpect(status().isOk());
+    }
+
     String correction(String contractId, String period, String amount) throws Exception {
         return idOf(mockMvc.perform(post("/api/v1/invoices/corrections")
                         .contentType(APPLICATION_JSON)

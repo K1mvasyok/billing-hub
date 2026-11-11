@@ -52,6 +52,10 @@ public class Contract extends AbstractEntity {
     @Column(name = "payment_term_days", nullable = false)
     private int paymentTermDays;
 
+    /** Дата активации. Пустая у черновика и у договора, расторгнутого до активации: такие договоры счетов не получают. */
+    @Column(name = "activated_on")
+    private LocalDate activatedOn;
+
     @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true)
     @NotAudited
     private List<ContractItem> items = new ArrayList<>();
@@ -73,18 +77,27 @@ public class Contract extends AbstractEntity {
         this.status = ContractStatus.DRAFT;
     }
 
-    public void activate() {
+    public void activate(LocalDate activationDay) {
         requireTransition(ContractStatus.ACTIVE);
         if (items.isEmpty()) {
             throw new BusinessRuleException("contract-has-no-items",
                     "Нельзя активировать договор без позиций");
         }
         this.status = ContractStatus.ACTIVE;
+        this.activatedOn = activationDay;
     }
 
-    public void terminate() {
+    /**
+     * Расторжение с даты effectiveDate. Эта дата — первый день, за который договор уже не действует.
+     * Договор и позиции обрезаются по ней; позиции, которые начинаются не раньше неё, удаляются.
+     */
+    public void terminate(LocalDate effectiveDate) {
         requireTransition(ContractStatus.TERMINATED);
+        requireTerminationDate(effectiveDate);
         this.status = ContractStatus.TERMINATED;
+        this.validTo = effectiveDate;
+        items.removeIf(item -> !item.getValidFrom().isBefore(effectiveDate));
+        items.forEach(item -> item.endBefore(effectiveDate));
     }
 
     public ContractItem addItem(Plan plan, int quantity, ValidityPeriod period) {
@@ -124,6 +137,16 @@ public class Contract extends AbstractEntity {
         }
     }
 
+    /** Дата расторжения должна лежать в срок договора: позже начала и не позже окончания (конец не включается). */
+    private void requireTerminationDate(LocalDate effectiveDate) {
+        boolean afterStart = effectiveDate.isAfter(validFrom);
+        boolean beforeEnd = validTo == null || !effectiveDate.isAfter(validTo);
+        if (!afterStart || !beforeEnd) {
+            throw new BusinessRuleException("contract-termination-outside-term",
+                    "Дата расторжения должна быть позже начала договора и не позже его окончания");
+        }
+    }
+
     private void requireWithinContract(ValidityPeriod itemPeriod) {
         if (!itemPeriod.isWithin(period())) {
             throw new BusinessRuleException("contract-item-outside-contract",
@@ -157,6 +180,10 @@ public class Contract extends AbstractEntity {
 
     public int getPaymentTermDays() {
         return paymentTermDays;
+    }
+
+    public LocalDate getActivatedOn() {
+        return activatedOn;
     }
 
     public List<ContractItem> getItems() {

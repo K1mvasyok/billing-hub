@@ -5,6 +5,7 @@ import io.github.k1mvasyok.billing.TestcontainersConfiguration;
 import io.github.k1mvasyok.billing.contracts.domain.Contract;
 import jakarta.persistence.EntityManager;
 import org.hibernate.envers.AuditReaderFactory;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.UUID;
@@ -52,9 +54,38 @@ class ContractLifecycleTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
 
-        mockMvc.perform(post("/api/v1/contracts/{id}/terminate", contractId))
+        mockMvc.perform(terminate(contractId, "2026-06-01"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("TERMINATED"));
+    }
+
+    @Test
+    @DisplayName("расторжение без даты отклоняется")
+    void terminationWithoutDateIsRejected() throws Exception {
+        String contractId = createContract(createCustomer(), unique("CTR"));
+
+        mockMvc.perform(post("/api/v1/contracts/{id}/terminate", contractId))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("дата расторжения в день начала договора отклоняется с кодом contract-termination-outside-term")
+    void terminationOnContractStartIsRejected() throws Exception {
+        String contractId = createContract(createCustomer(), unique("CTR"));
+
+        mockMvc.perform(terminate(contractId, "2026-01-01"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("urn:billing-hub:problem:contract-termination-outside-term"));
+    }
+
+    @Test
+    @DisplayName("дата расторжения после окончания договора отклоняется с кодом contract-termination-outside-term")
+    void terminationAfterContractEndIsRejected() throws Exception {
+        String contractId = createContract(createCustomer(), unique("CTR"));
+
+        mockMvc.perform(terminate(contractId, "2027-01-02"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("urn:billing-hub:problem:contract-termination-outside-term"));
     }
 
     @Test
@@ -243,6 +274,12 @@ class ContractLifecycleTest {
                                 """.formatted(planId, from, to)))
                 .andExpect(status().isCreated())
                 .andReturn());
+    }
+
+    private static MockHttpServletRequestBuilder terminate(String contractId, String effectiveDate) {
+        return post("/api/v1/contracts/{id}/terminate", contractId)
+                .contentType(APPLICATION_JSON)
+                .content("{\"effectiveDate\": \"%s\"}".formatted(effectiveDate));
     }
 
     private static String idOf(MvcResult result) throws Exception {

@@ -6,6 +6,7 @@ import io.github.k1mvasyok.billing.contracts.api.ContractResponse;
 import io.github.k1mvasyok.billing.contracts.api.ItemRequest;
 import io.github.k1mvasyok.billing.contracts.api.ItemResponse;
 import io.github.k1mvasyok.billing.contracts.api.ItemUpdateRequest;
+import io.github.k1mvasyok.billing.contracts.api.TerminateRequest;
 import io.github.k1mvasyok.billing.contracts.app.ContractService;
 import io.github.k1mvasyok.billing.contracts.domain.ContractStatus;
 import jakarta.validation.Valid;
@@ -58,8 +59,8 @@ public class ContractController {
     }
 
     @PostMapping("/{id}/terminate")
-    ContractResponse terminate(@PathVariable UUID id) {
-        return service.terminate(id);
+    ContractResponse terminate(@PathVariable UUID id, @Valid @RequestBody TerminateRequest request) {
+        return service.terminate(id, request.effectiveDate());
     }
 
     @PostMapping("/{id}/items")

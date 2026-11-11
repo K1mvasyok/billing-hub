@@ -26,6 +26,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -39,14 +41,16 @@ public class ContractService {
     private final PlanPriceRepository planPrices;
     private final CustomerDirectory customers;
     private final ContractMapper mapper;
+    private final Clock clock;
 
     public ContractService(ContractRepository contracts, PlanRepository plans, PlanPriceRepository planPrices,
-                           CustomerDirectory customers, ContractMapper mapper) {
+                           CustomerDirectory customers, ContractMapper mapper, Clock clock) {
         this.contracts = contracts;
         this.plans = plans;
         this.planPrices = planPrices;
         this.customers = customers;
         this.mapper = mapper;
+        this.clock = clock;
     }
 
     public ContractResponse create(ContractRequest request) {
@@ -86,13 +90,13 @@ public class ContractService {
 
     public ContractResponse activate(UUID id) {
         Contract contract = load(id);
-        contract.activate();
+        contract.activate(LocalDate.now(clock));
         return mapper.toContractResponse(contracts.saveAndFlush(contract));
     }
 
-    public ContractResponse terminate(UUID id) {
+    public ContractResponse terminate(UUID id, LocalDate effectiveDate) {
         Contract contract = load(id);
-        contract.terminate();
+        contract.terminate(effectiveDate);
         return mapper.toContractResponse(contracts.saveAndFlush(contract));
     }
 

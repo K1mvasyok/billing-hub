@@ -103,6 +103,59 @@ class BillingRunLifecycleTest {
                 .andExpect(jsonPath("$.type").value("urn:billing-hub:problem:invalid-value"));
     }
 
+    @Test
+    @DisplayName("расторжение 16 марта: счёт за март на 15 дней из 31, за апрель счёта нет")
+    void terminatedContractIsBilledOnlyUntilEffectiveDate() throws Exception {
+        String planId = fixtures.pricedPlan();
+        String contractId = fixtures.contract("2031-01-01", "2031-12-31");
+        fixtures.addItem(contractId, planId, 2, "2031-01-01", "2031-12-31");
+        fixtures.activate(contractId);
+        fixtures.terminate(contractId, "2031-03-16");
+
+        // 1–15 марта: 1500 × 2 × 15 / 31 = 1451.61
+        awaitCompleted(startRun("2031-03"));
+        mockMvc.perform(get("/api/v1/invoices").param("contractId", contractId).param("period", "2031-03"))
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].total").value("1451.61"));
+
+        awaitCompleted(startRun("2031-04"));
+        mockMvc.perform(get("/api/v1/invoices").param("contractId", contractId).param("period", "2031-04"))
+                .andExpect(jsonPath("$.content.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("позиция, которая начинается после расторжения, в счёт не попадает")
+    void itemStartingAfterTerminationIsNotBilled() throws Exception {
+        String planId = fixtures.pricedPlan();
+        String contractId = fixtures.contract("2031-01-01", "2031-12-31");
+        fixtures.addItem(contractId, planId, 1, "2031-01-01", "2031-12-31");
+        fixtures.addItem(contractId, planId, 1, "2031-04-01", "2031-12-31");
+        fixtures.activate(contractId);
+        fixtures.terminate(contractId, "2031-03-16");
+
+        // Остаётся только первая позиция: 1500 × 1 × 15 / 31 = 725.81
+        awaitCompleted(startRun("2031-03"));
+        mockMvc.perform(get("/api/v1/invoices").param("contractId", contractId).param("period", "2031-03"))
+                .andExpect(jsonPath("$.content[0].total").value("725.81"));
+
+        awaitCompleted(startRun("2031-04"));
+        mockMvc.perform(get("/api/v1/invoices").param("contractId", contractId).param("period", "2031-04"))
+                .andExpect(jsonPath("$.content.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("черновик с позицией, расторгнутый без активации, не выставляется")
+    void draftTerminatedWithoutActivationIsNotBilled() throws Exception {
+        String planId = fixtures.pricedPlan();
+        String contractId = fixtures.contract("2031-01-01", "2031-12-31");
+        fixtures.addItem(contractId, planId, 1, "2031-01-01", "2031-12-31");
+        fixtures.terminate(contractId, "2031-03-16");
+
+        awaitCompleted(startRun("2031-03"));
+        mockMvc.perform(get("/api/v1/invoices").param("contractId", contractId).param("period", "2031-03"))
+                .andExpect(jsonPath("$.content.length()").value(0));
+    }
+
     private String startRun(String period) throws Exception {
         return JsonPath.read(mockMvc.perform(post("/api/v1/billing-runs")
                         .contentType(APPLICATION_JSON)

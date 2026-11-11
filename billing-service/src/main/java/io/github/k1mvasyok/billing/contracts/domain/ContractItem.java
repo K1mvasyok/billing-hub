@@ -61,6 +61,13 @@ public class ContractItem extends AbstractEntity {
         this.validTo = period.to();
     }
 
+    /** Обрезает позицию по дате, не меняя позицию, которая уже заканчивается раньше. Вызывается только из {@link Contract}. */
+    void endBefore(LocalDate day) {
+        if (validTo == null || validTo.isAfter(day)) {
+            this.validTo = day;
+        }
+    }
+
     public ValidityPeriod period() {
         return new ValidityPeriod(validFrom, validTo);
     }

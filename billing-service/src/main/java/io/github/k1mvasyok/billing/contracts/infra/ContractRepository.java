@@ -17,10 +17,14 @@ public interface ContractRepository extends JpaRepository<Contract, UUID>, JpaSp
 
     boolean existsByNumber(String number);
 
-    /** Договоры к расчёту: действующие или расторгнутые, чей срок пересекает месяц [monthStart, monthEnd). */
+    /**
+     * Договоры к расчёту: активированные (действующие или расторгнутые), чей срок пересекает месяц [monthStart, monthEnd).
+     * Черновик, расторгнутый до активации, сюда не попадает: у него нет activatedOn.
+     */
     @Query("""
             select c.id from Contract c
             where c.status in :statuses
+              and c.activatedOn is not null
               and c.validFrom < :monthEnd
               and (c.validTo is null or c.validTo > :monthStart)
               and (:afterId is null or c.id > :afterId)

@@ -86,7 +86,7 @@ java -jar billing-service/build/libs/billing-service-0.0.1-SNAPSHOT.jar
 |---|---|
 | Клиенты | `POST /customers`, `GET /customers` (фильтры: `query`, `status`), `GET/PATCH /customers/{id}` |
 | Тарифы | `POST /plans`, `GET /plans`, `POST /plans/{id}/prices` |
-| Договоры | `POST /contracts`, `GET /contracts` (фильтры: `customerId`, `status`), `GET /contracts/{id}`, `POST /contracts/{id}/activate`, `POST /contracts/{id}/terminate`, `POST /contracts/{id}/items`, `PATCH /contracts/{id}/items/{itemId}` |
+| Договоры | `POST /contracts`, `GET /contracts` (фильтры: `customerId`, `status`), `GET /contracts/{id}`, `POST /contracts/{id}/activate`, `POST /contracts/{id}/terminate` (тело: `effectiveDate`, первый день без действия), `POST /contracts/{id}/items`, `PATCH /contracts/{id}/items/{itemId}` |
 | Расчётные периоды | `GET /billing-periods`, `POST /billing-periods/{yyyy-MM}/close` |
 | Запуски биллинга | `POST /billing-runs` (202, идёт в фоне), `GET /billing-runs/{id}` |
 | Счета | `GET /invoices` (фильтры: `customerId`, `contractId`, `status`, `period`), `GET /invoices/export.xlsx` (те же фильтры, XLSX отдаётся потоком), `GET /invoices/{id}`, `POST /invoices/{id}/cancel`, `POST /invoices/corrections` |
@@ -109,7 +109,9 @@ java -jar billing-service/build/libs/billing-service-0.0.1-SNAPSHOT.jar
 
 ## Известные ограничения
 
-- **Расторжение не обрезает позиции.** Расторгнутый договор выставляется на весь срок своих позиций. Это нужно решить до первого настоящего расчётного цикла.
+- **Расторжение задним числом не отменяет счета.** Договор и позиции обрезаются по дате расторжения, но счета за месяцы после неё, уже выпущенные запуском, остаются. Отмены такого счёта пока нет: сторно появится отдельно.
+- **Расторжение внутри закрытого месяца не пересчитывает его.** Закрытый месяц уже выставлен целиком. Запрета на дату расторжения в закрытом периоде пока нет: contracts не читает invoicing напрямую, нужен API-порт.
+- **Старые расторгнутые договоры перестают выставляться.** Миграция 010 проставляет дату активации только действующим договорам. По статусу `TERMINATED` нельзя понять, были ли расторгнутые договоры активны, поэтому им дату не ставим, и они не попадают в расчёт.
 - **Отмена счёта не смотрит на разноску.** Платежей пока нет. Когда они появятся в M3, отмену счёта с оплатами нужно будет запрещать.
 - **Одновременные запуски за один период.** Проверка «нет идущего запуска за этот период» и вставка нового запуска не атомарны: два одновременных запроса могут запустить два прогона. Уникальный индекс на счетах не даст создать дубли обычных счетов, но статистика запусков будет неверной.
 - **Упавшие запуски не продолжаются.** Запуск, который остался в `RUNNING` при остановке сервиса, при старте помечается `FAILED`. Чтобы довести период, запусти его заново: договоры, по которым счёт уже есть, пропускаются.
