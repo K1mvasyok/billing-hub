@@ -43,7 +43,7 @@ class BillingRunLifecycleTest {
     void runBillsContractOnceAndSkipsItOnRerun() throws Exception {
         // 16–31 мая: 16 дней из 31, 1500 × 2 × 16 / 31 = 1548.39
         String contractId = fixtures.activeContractWithItem(
-                "2031-01-01", "2031-12-31", "2031-05-16", "2031-06-01", 2);
+                "2031-01-01", "2032-01-01", "2031-05-16", "2031-06-01", 2);
 
         awaitCompleted(startRun("2031-05"));
         mockMvc.perform(get("/api/v1/invoices").param("contractId", contractId).param("period", "2031-05"))
@@ -73,7 +73,7 @@ class BillingRunLifecycleTest {
     @Test
     @DisplayName("BR-05: корректировка может быть отрицательной, отмена выставленного счёта — один раз (BR-06)")
     void correctionCanBeNegativeAndIssuedInvoiceCancelsOnce() throws Exception {
-        String contractId = fixtures.contract("2031-01-01", "2031-12-31");
+        String contractId = fixtures.contract("2031-01-01", "2032-01-01");
         String correctionId = fixtures.correction(contractId, "2031-06", "-50.00");
 
         mockMvc.perform(get("/api/v1/invoices/{id}", correctionId))
@@ -93,7 +93,7 @@ class BillingRunLifecycleTest {
     @Test
     @DisplayName("BR-05: нулевая корректировка не имеет смысла")
     void zeroCorrectionIsRejected() throws Exception {
-        String contractId = fixtures.contract("2031-01-01", "2031-12-31");
+        String contractId = fixtures.contract("2031-01-01", "2032-01-01");
 
         mockMvc.perform(post("/api/v1/invoices/corrections")
                         .contentType(APPLICATION_JSON)
@@ -108,8 +108,8 @@ class BillingRunLifecycleTest {
     @DisplayName("расторжение 16 марта: счёт за март на 15 дней из 31, за апрель счёта нет")
     void terminatedContractIsBilledOnlyUntilEffectiveDate() throws Exception {
         String planId = fixtures.pricedPlan();
-        String contractId = fixtures.contract("2031-01-01", "2031-12-31");
-        fixtures.addItem(contractId, planId, 2, "2031-01-01", "2031-12-31");
+        String contractId = fixtures.contract("2031-01-01", "2032-01-01");
+        fixtures.addItem(contractId, planId, 2, "2031-01-01", "2032-01-01");
         fixtures.activate(contractId);
         fixtures.terminate(contractId, "2031-03-16");
 
@@ -128,9 +128,9 @@ class BillingRunLifecycleTest {
     @DisplayName("позиция, которая начинается после расторжения, в счёт не попадает")
     void itemStartingAfterTerminationIsNotBilled() throws Exception {
         String planId = fixtures.pricedPlan();
-        String contractId = fixtures.contract("2031-01-01", "2031-12-31");
-        fixtures.addItem(contractId, planId, 1, "2031-01-01", "2031-12-31");
-        fixtures.addItem(contractId, planId, 1, "2031-04-01", "2031-12-31");
+        String contractId = fixtures.contract("2031-01-01", "2032-01-01");
+        fixtures.addItem(contractId, planId, 1, "2031-01-01", "2032-01-01");
+        fixtures.addItem(contractId, planId, 1, "2031-04-01", "2032-01-01");
         fixtures.activate(contractId);
         fixtures.terminate(contractId, "2031-03-16");
 
@@ -148,13 +148,34 @@ class BillingRunLifecycleTest {
     @DisplayName("черновик с позицией, расторгнутый без активации, не выставляется")
     void draftTerminatedWithoutActivationIsNotBilled() throws Exception {
         String planId = fixtures.pricedPlan();
-        String contractId = fixtures.contract("2031-01-01", "2031-12-31");
-        fixtures.addItem(contractId, planId, 1, "2031-01-01", "2031-12-31");
+        String contractId = fixtures.contract("2031-01-01", "2032-01-01");
+        fixtures.addItem(contractId, planId, 1, "2031-01-01", "2032-01-01");
         fixtures.terminate(contractId, "2031-03-16");
 
         awaitCompleted(startRun("2031-03"));
         mockMvc.perform(get("/api/v1/invoices").param("contractId", contractId).param("period", "2031-03"))
                 .andExpect(jsonPath("$.content.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("BR-02: позиция до 1 января следующего года покрывает декабрь полностью, до 31 декабря — без 31-го числа")
+    void fullYearPositionIsBilledFullDecember() throws Exception {
+        String planId = fixtures.pricedPlan();
+        // Конец периода не входит: договор и позиция до 2032-01-01 покрывают весь декабрь 2031 года.
+        String fullYear = fixtures.contract("2031-01-01", "2032-01-01");
+        fixtures.addItem(fullYear, planId, 1, "2031-01-01", "2032-01-01");
+        fixtures.activate(fullYear);
+        // Конец 2031-12-31 не входит: 31 декабря не оплачивается. 1500 × 30 / 31 = 1451.61
+        String untilThirtyFirst = fixtures.contract("2031-01-01", "2031-12-31");
+        fixtures.addItem(untilThirtyFirst, planId, 1, "2031-01-01", "2031-12-31");
+        fixtures.activate(untilThirtyFirst);
+
+        awaitCompleted(startRun("2031-12"));
+
+        mockMvc.perform(get("/api/v1/invoices").param("contractId", fullYear).param("period", "2031-12"))
+                .andExpect(jsonPath("$.content[0].total").value("1500.00"));
+        mockMvc.perform(get("/api/v1/invoices").param("contractId", untilThirtyFirst).param("period", "2031-12"))
+                .andExpect(jsonPath("$.content[0].total").value("1451.61"));
     }
 
     private String startRun(String period) throws Exception {

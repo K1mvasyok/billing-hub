@@ -91,6 +91,8 @@ java -jar billing-service/build/libs/billing-service-0.0.1-SNAPSHOT.jar
 | Запуски биллинга | `POST /billing-runs` (202, идёт в фоне), `GET /billing-runs/{id}` |
 | Счета | `GET /invoices` (фильтры: `customerId`, `contractId`, `status`, `period`), `GET /invoices/export.xlsx` (те же фильтры, XLSX отдаётся потоком), `GET /invoices/{id}`, `POST /invoices/{id}/cancel`, `POST /invoices/corrections` |
 
+Периоды (`validFrom`, `validTo`) полуоткрытые: `validTo` — первый день, который уже не входит в срок. Договор с `validTo = 2027-01-01` покрывает весь 2026 год, включая 31 декабря. Если указать `validTo = 2026-12-31`, последний день года не оплачивается, и декабрь выставится за 30 дней из 31. Это описано и в OpenAPI.
+
 Списки отдаются постранично: `page`, `size` (не больше 100) и `sort`.
 
 ## Какие бизнес-правила уже работают

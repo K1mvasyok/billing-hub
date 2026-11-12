@@ -47,7 +47,8 @@ Content-Type: application/json
   "monthlyPrice": "1500.00"
 }
 
-### 6. Договор (создаётся в статусе DRAFT)
+### 6. Договор (создаётся в статусе DRAFT). validTo — первый день, который уже не входит в срок:
+### validTo 2027-01-01 покрывает весь 2026 год, включая 31 декабря.
 POST {{base}}/contracts
 Content-Type: application/json
 
@@ -56,7 +57,7 @@ Content-Type: application/json
   "number": "C-2026-0001",
   "signedOn": "2026-01-01",
   "validFrom": "2026-01-01",
-  "validTo": "2026-12-31",
+  "validTo": "2027-01-01",
   "paymentTermDays": 14
 }
 
@@ -68,7 +69,7 @@ Content-Type: application/json
   "planId": "PLAN_ID",
   "quantity": 2,
   "validFrom": "2026-01-01",
-  "validTo": "2026-12-31"
+  "validTo": "2027-01-01"
 }
 
 ### 8. Изменить позицию (только в DRAFT). Передаются количество и период целиком.
@@ -78,7 +79,7 @@ Content-Type: application/json
 {
   "quantity": 3,
   "validFrom": "2026-01-01",
-  "validTo": "2026-12-31"
+  "validTo": "2027-01-01"
 }
 
 ### 9. Активировать (нужна хотя бы одна позиция)

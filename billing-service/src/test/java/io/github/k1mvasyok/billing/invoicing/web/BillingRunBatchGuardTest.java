@@ -56,8 +56,8 @@ class BillingRunBatchGuardTest {
     @Test
     @DisplayName("BR-05: период закрыт между пачками — запуск FAILED, вторая пачка ничего не пишет")
     void periodClosedBetweenBatchesFailsRunAndWritesNothingAfter() throws Exception {
-        String first = fixtures.activeContractWithItem("2050-01-01", "2050-12-31", "2050-01-01", "2050-12-31", 1);
-        String second = fixtures.activeContractWithItem("2050-01-01", "2050-12-31", "2050-01-01", "2050-12-31", 1);
+        String first = fixtures.activeContractWithItem("2050-01-01", "2051-01-01", "2050-01-01", "2051-01-01", 1);
+        String second = fixtures.activeContractWithItem("2050-01-01", "2051-01-01", "2050-01-01", "2051-01-01", 1);
 
         doAnswer(invocation -> {
             // Второй вызов поиска идёт после первой пачки: период закрывают прямо перед второй пачкой.

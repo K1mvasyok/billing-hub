@@ -42,7 +42,7 @@ class BillingPeriodLockTest {
     @Test
     @DisplayName("BR-05: закрытый период и всё раньше него нельзя менять, закрыть дважды нельзя")
     void closedPeriodLocksItselfAndEarlierPeriods() throws Exception {
-        String contractId = fixtures.contract("2040-01-01", "2040-12-31");
+        String contractId = fixtures.contract("2040-01-01", "2041-01-01");
         String inMarch = fixtures.correction(contractId, "2040-03", "10.00");
         String inFebruary = fixtures.correction(contractId, "2040-02", "10.00");
 

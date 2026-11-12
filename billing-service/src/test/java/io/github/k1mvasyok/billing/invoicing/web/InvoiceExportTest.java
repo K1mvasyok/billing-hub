@@ -45,7 +45,7 @@ class InvoiceExportTest {
     @Test
     @DisplayName("BR-18: реестр отдаётся потоком и читается обратно в XLSX с теми же счетами")
     void exportStreamsFilteredInvoicesAsReadableWorkbook() throws Exception {
-        String contractId = fixtures.contract("2042-01-01", "2042-12-31");
+        String contractId = fixtures.contract("2042-01-01", "2043-01-01");
         fixtures.correction(contractId, "2042-08", "100.00");
         fixtures.correction(contractId, "2042-08", "-50.00");
 

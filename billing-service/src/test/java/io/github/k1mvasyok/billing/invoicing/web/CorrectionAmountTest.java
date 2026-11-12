@@ -55,7 +55,7 @@ class CorrectionAmountTest {
     @Test
     @DisplayName("BR-01: корректировка с одним знаком сохраняется и возвращается с двумя знаками")
     void correctionWithOneDecimalIsStoredWithTwo() throws Exception {
-        String contractId = fixtures.contract("2031-01-01", "2031-12-31");
+        String contractId = fixtures.contract("2031-01-01", "2032-01-01");
 
         String body = mockMvc.perform(post("/api/v1/invoices/corrections")
                         .contentType(APPLICATION_JSON)
@@ -73,7 +73,7 @@ class CorrectionAmountTest {
     }
 
     private void assertRejected(String amount) throws Exception {
-        String contractId = fixtures.contract("2031-01-01", "2031-12-31");
+        String contractId = fixtures.contract("2031-01-01", "2032-01-01");
         mockMvc.perform(post("/api/v1/invoices/corrections")
                         .contentType(APPLICATION_JSON)
                         .content("""

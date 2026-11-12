@@ -41,7 +41,8 @@ public class DemoDataGenerator implements ApplicationRunner {
     private static final int BATCH = 1000;
     private static final int PLAN_COUNT = 5;
     private static final LocalDate YEAR_START = LocalDate.of(2026, 1, 1);
-    private static final LocalDate YEAR_END = LocalDate.of(2026, 12, 31);
+    /** Первый день после 2026 года: validTo не входит в срок, поэтому 31 декабря оплачивается полностью. */
+    private static final LocalDate YEAR_END_EXCLUSIVE = LocalDate.of(2027, 1, 1);
     private static final LocalDate PRICE_CHANGE = LocalDate.of(2026, 7, 1);
 
     private final JdbcTemplate jdbc;
@@ -142,14 +143,14 @@ public class DemoDataGenerator implements ApplicationRunner {
             UUID contractId = UuidV7.next();
             contractRows.add(new Object[]{
                     contractId, customers.get(random.nextInt(customers.size())), "D-%06d".formatted(i + 1),
-                    Date.valueOf(YEAR_START), Date.valueOf(YEAR_START), Date.valueOf(YEAR_END),
+                    Date.valueOf(YEAR_START), Date.valueOf(YEAR_START), Date.valueOf(YEAR_END_EXCLUSIVE),
                     Date.valueOf(YEAR_START), now, now});
             int items = 1 + random.nextInt(2);
             for (int item = 0; item < items; item++) {
                 LocalDate from = random.nextInt(10) < 3 ? randomDayIn2026() : YEAR_START;
                 itemRows.add(new Object[]{
                         UuidV7.next(), contractId, plans.get(random.nextInt(plans.size())),
-                        1 + random.nextInt(5), Date.valueOf(from), Date.valueOf(YEAR_END), now, now});
+                        1 + random.nextInt(5), Date.valueOf(from), Date.valueOf(YEAR_END_EXCLUSIVE), now, now});
             }
             if (contractRows.size() == BATCH) {
                 flushContracts(contractRows, itemRows);

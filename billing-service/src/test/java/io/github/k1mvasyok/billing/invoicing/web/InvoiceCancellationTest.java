@@ -39,7 +39,7 @@ class InvoiceCancellationTest {
     @Test
     @DisplayName("BR-06: ISSUED → CANCELLED в открытом периоде один раз; повтор и отмена в закрытом периоде запрещены")
     void issuedInvoiceCancelsOnceAndOnlyInOpenPeriod() throws Exception {
-        String contractId = fixtures.contract("2047-01-01", "2047-12-31");
+        String contractId = fixtures.contract("2047-01-01", "2048-01-01");
         String cancelledOnce = fixtures.correction(contractId, "2047-01", "10.00");
         String lockedLater = fixtures.correction(contractId, "2047-02", "10.00");
 

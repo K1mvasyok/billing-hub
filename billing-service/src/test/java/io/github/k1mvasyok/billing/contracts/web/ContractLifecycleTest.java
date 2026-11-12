@@ -48,7 +48,7 @@ class ContractLifecycleTest {
     void contractGoesFromDraftToActiveToTerminated() throws Exception {
         String planId = createPlanWithPrice();
         String contractId = createContract(createCustomer(), unique("CTR"));
-        addItem(contractId, planId, "2026-01-01", "2026-12-31");
+        addItem(contractId, planId, "2026-01-01", "2027-01-01");
 
         mockMvc.perform(post("/api/v1/contracts/{id}/activate", contractId))
                 .andExpect(status().isOk())
@@ -128,7 +128,7 @@ class ContractLifecycleTest {
         mockMvc.perform(post("/api/v1/contracts/{id}/items", contractId)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"planId": "%s", "quantity": 1, "validFrom": "2026-01-01", "validTo": "2026-12-31"}
+                                {"planId": "%s", "quantity": 1, "validFrom": "2026-01-01", "validTo": "2027-01-01"}
                                 """.formatted(planId)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.type").value("urn:billing-hub:problem:plan-price-missing"));
@@ -144,7 +144,7 @@ class ContractLifecycleTest {
         mockMvc.perform(post("/api/v1/contracts/{id}/items", contractId)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"planId": "%s", "quantity": 1, "validFrom": "2026-01-01", "validTo": "2026-12-31"}
+                                {"planId": "%s", "quantity": 1, "validFrom": "2026-01-01", "validTo": "2027-01-01"}
                                 """.formatted(planId)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.type").value("urn:billing-hub:problem:plan-price-missing"));
@@ -154,13 +154,13 @@ class ContractLifecycleTest {
     void itemCannotBeChangedAfterActivation() throws Exception {
         String planId = createPlanWithPrice();
         String contractId = createContract(createCustomer(), unique("CTR"));
-        String itemId = addItem(contractId, planId, "2026-01-01", "2026-12-31");
+        String itemId = addItem(contractId, planId, "2026-01-01", "2027-01-01");
         mockMvc.perform(post("/api/v1/contracts/{id}/activate", contractId)).andExpect(status().isOk());
 
         mockMvc.perform(patch("/api/v1/contracts/{id}/items/{itemId}", contractId, itemId)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"quantity": 5, "validFrom": "2026-01-01", "validTo": "2026-12-31"}
+                                {"quantity": 5, "validFrom": "2026-01-01", "validTo": "2027-01-01"}
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.type").value("urn:billing-hub:problem:contract-not-draft"));
@@ -198,7 +198,7 @@ class ContractLifecycleTest {
     void enversRecordsEveryRevisionOfTheContract() throws Exception {
         String planId = createPlanWithPrice();
         String contractId = createContract(createCustomer(), unique("CTR"));
-        addItem(contractId, planId, "2026-01-01", "2026-12-31");
+        addItem(contractId, planId, "2026-01-01", "2027-01-01");
         mockMvc.perform(post("/api/v1/contracts/{id}/activate", contractId)).andExpect(status().isOk());
 
         int revisions = transactions.execute(state -> AuditReaderFactory.get(entityManager)
@@ -260,7 +260,7 @@ class ContractLifecycleTest {
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {"customerId": "%s", "number": "%s", "signedOn": "2026-01-01",
-                                 "validFrom": "2026-01-01", "validTo": "2026-12-31", "paymentTermDays": 14}
+                                 "validFrom": "2026-01-01", "validTo": "2027-01-01", "paymentTermDays": 14}
                                 """.formatted(customerId, number)))
                 .andExpect(status().isCreated())
                 .andReturn());

@@ -138,7 +138,7 @@ class BillingRunRaceTest {
     @Order(4)
     @DisplayName("BR-05: отмена счёта ждёт закрытие периода и получает 409")
     void cancelWaitsForPeriodCloseAndGetsClosedConflict() throws Exception {
-        String contractId = fixtures.contract("2047-01-01", "2047-12-31");
+        String contractId = fixtures.contract("2047-01-01", "2048-01-01");
         String invoiceId = fixtures.correction(contractId, "2047-02", "10.00");
 
         MvcResult result = raceAgainstLockHolder(
@@ -153,7 +153,7 @@ class BillingRunRaceTest {
     @Order(5)
     @DisplayName("BR-05: корректировка ждёт закрытие периода и получает 409")
     void correctionWaitsForPeriodCloseAndGetsClosedConflict() throws Exception {
-        String contractId = fixtures.contract("2048-01-01", "2048-12-31");
+        String contractId = fixtures.contract("2048-01-01", "2049-01-01");
 
         MvcResult result = raceAgainstLockHolder(
                 () -> periods.close("2048-02"),
