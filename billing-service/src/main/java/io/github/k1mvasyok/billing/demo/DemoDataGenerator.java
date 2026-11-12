@@ -1,8 +1,7 @@
 package io.github.k1mvasyok.billing.demo;
 
 import io.github.k1mvasyok.billing.invoicing.api.BillingRunResponse;
-import io.github.k1mvasyok.billing.invoicing.app.BillingRunService;
-import io.github.k1mvasyok.billing.invoicing.domain.BillingRunStatus;
+import io.github.k1mvasyok.billing.invoicing.api.BillingRuns;
 import io.github.k1mvasyok.billing.shared.id.UuidV7;
 import net.datafaker.Faker;
 import org.slf4j.Logger;
@@ -29,7 +28,7 @@ import java.util.UUID;
 /**
  * Синтетические данные для замеров (профиль demo). Все имена, адреса и телефоны — из Datafaker.
  * Генерация идёт прямыми INSERT-ами пачками: для замеров нужен объём, а не проверка правил.
- * Выставление счетов запускается через BillingRunService, поэтому замеряется настоящий путь.
+ * Выставление счетов запускается через фасад BillingRuns, поэтому замеряется настоящий путь.
  * Повторный запуск ничего не делает, если клиенты уже есть.
  */
 @Component
@@ -46,13 +45,13 @@ public class DemoDataGenerator implements ApplicationRunner {
     private static final LocalDate PRICE_CHANGE = LocalDate.of(2026, 7, 1);
 
     private final JdbcTemplate jdbc;
-    private final BillingRunService billingRuns;
+    private final BillingRuns billingRuns;
     private final int customerCount;
     private final int contractCount;
     private final Random random = new Random(42);
     private final Faker faker = new Faker(random);
 
-    public DemoDataGenerator(JdbcTemplate jdbc, BillingRunService billingRuns,
+    public DemoDataGenerator(JdbcTemplate jdbc, BillingRuns billingRuns,
                              @Value("${billing.demo.customers:10000}") int customerCount,
                              @Value("${billing.demo.contracts:15000}") int contractCount) {
         this.jdbc = jdbc;
@@ -198,7 +197,8 @@ public class DemoDataGenerator implements ApplicationRunner {
     private BillingRunResponse awaitFinished(UUID runId) {
         while (true) {
             BillingRunResponse run = billingRuns.get(runId);
-            if (run.status() != BillingRunStatus.RUNNING) {
+            // Запуск завершён, когда у него появилась дата окончания (COMPLETED или FAILED).
+            if (run.finishedAt() != null) {
                 return run;
             }
             try {

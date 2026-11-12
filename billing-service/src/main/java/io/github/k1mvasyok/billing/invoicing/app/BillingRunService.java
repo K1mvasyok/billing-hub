@@ -1,6 +1,7 @@
 package io.github.k1mvasyok.billing.invoicing.app;
 
 import io.github.k1mvasyok.billing.invoicing.api.BillingRunResponse;
+import io.github.k1mvasyok.billing.invoicing.api.BillingRuns;
 import io.github.k1mvasyok.billing.invoicing.domain.BillingRun;
 import io.github.k1mvasyok.billing.invoicing.domain.BillingRunStatus;
 import io.github.k1mvasyok.billing.invoicing.infra.BillingRunRepository;
@@ -22,7 +23,7 @@ import java.util.concurrent.Executors;
  * Запуск выставления счетов. Сам расчёт идёт в фоне: сервис возвращает 202 сразу, статус видно в billing_run.
  */
 @Service
-public class BillingRunService {
+public class BillingRunService implements BillingRuns {
 
     private final BillingRunRepository runs;
     private final BillingPeriodService periods;
@@ -42,6 +43,7 @@ public class BillingRunService {
         this.mapper = mapper;
     }
 
+    @Override
     public BillingRunResponse start(String periodText) {
         LocalDate period = BillingPeriodService.parseMonth(periodText);
         // Проверка периода и вставка запуска идут под общей блокировкой: второй старт ждёт коммита первого.
@@ -60,6 +62,7 @@ public class BillingRunService {
         return get(runId);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public BillingRunResponse get(UUID id) {
         return runs.findById(id)

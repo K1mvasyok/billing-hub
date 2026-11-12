@@ -76,7 +76,7 @@ java -jar billing-service/build/libs/billing-service-0.0.1-SNAPSHOT.jar
 | `invoicing` | Расчётные периоды, запуски биллинга, счета, пропорциональный расчёт, корректировки |
 | `shared` | Ошибки (RFC 9457 ProblemDetail), генератор id, базовые классы для JPA, типы периодов |
 
-Почему так — в [ADR 0001](docs/adr/0001-modular-monolith.md). Правило границ для существующих модулей (`customers`, `contracts`, `invoicing`) проверяет ArchUnit-тест `ModuleBoundaryTest`.
+Почему так — в [ADR 0001](docs/adr/0001-modular-monolith.md). Снаружи модуля виден только его пакет `api`: классы вне модуля и вне `shared` не могут зависеть от `app`, `domain`, `infra` или `web` другого модуля. Пакет `demo` — потребитель модулей (вне предметной схемы), он ходит к ним только через `api`; для запуска выставления у него есть фасад `invoicing.api.BillingRuns`. ArchUnit-тест `ModuleBoundaryTest` проверяет эти правила и не даёт появиться пакету верхнего уровня, который не зарегистрирован в тесте.
 
 ## API
 
