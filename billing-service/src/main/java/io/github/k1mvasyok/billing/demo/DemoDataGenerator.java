@@ -181,6 +181,10 @@ public class DemoDataGenerator implements ApplicationRunner {
     private void runBillingForYear() {
         for (int month = 1; month <= 12; month++) {
             YearMonth period = YearMonth.of(2026, month);
+            if (!period.isBefore(YearMonth.now())) {
+                log.info("Пропускаем {}: месяц ещё не закончился, счета за него не выставляются", period);
+                continue;
+            }
             Instant started = Instant.now();
             BillingRunResponse run = billingRuns.start(period.toString());
             BillingRunResponse finished = awaitFinished(run.id());

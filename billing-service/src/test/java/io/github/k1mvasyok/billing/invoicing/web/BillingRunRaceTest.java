@@ -1,5 +1,6 @@
 package io.github.k1mvasyok.billing.invoicing.web;
 
+import io.github.k1mvasyok.billing.TestClockConfiguration;
 import io.github.k1mvasyok.billing.TestcontainersConfiguration;
 import io.github.k1mvasyok.billing.invoicing.app.BillingLock;
 import io.github.k1mvasyok.billing.invoicing.app.BillingPeriodService;
@@ -48,7 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestClockConfiguration.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class BillingRunRaceTest {

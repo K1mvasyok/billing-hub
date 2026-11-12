@@ -1,6 +1,7 @@
 package io.github.k1mvasyok.billing.invoicing.web;
 
 import com.jayway.jsonpath.JsonPath;
+import io.github.k1mvasyok.billing.TestClockConfiguration;
 import io.github.k1mvasyok.billing.TestcontainersConfiguration;
 import io.github.k1mvasyok.billing.contracts.api.ContractDirectory;
 import io.github.k1mvasyok.billing.invoicing.app.BillingPeriodService;
@@ -30,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(properties = "billing.run.batch-size=1")
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestClockConfiguration.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class BillingRunBatchGuardTest {
 

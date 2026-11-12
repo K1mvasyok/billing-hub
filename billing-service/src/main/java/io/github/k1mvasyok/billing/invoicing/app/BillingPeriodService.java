@@ -10,6 +10,7 @@ import io.github.k1mvasyok.billing.shared.error.BusinessRuleException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -24,13 +25,15 @@ public class BillingPeriodService {
     private final BillingRunRepository runs;
     private final BillingLock billingLock;
     private final InvoicingMapper mapper;
+    private final Clock clock;
 
     public BillingPeriodService(BillingPeriodRepository periods, BillingRunRepository runs,
-                                BillingLock billingLock, InvoicingMapper mapper) {
+                                BillingLock billingLock, InvoicingMapper mapper, Clock clock) {
         this.periods = periods;
         this.runs = runs;
         this.billingLock = billingLock;
         this.mapper = mapper;
+        this.clock = clock;
     }
 
     /** Разбирает yyyy-MM в первое число месяца. Неверный формат — IllegalArgumentException (400). */
@@ -55,6 +58,7 @@ public class BillingPeriodService {
     public BillingPeriodResponse close(String text) {
         LocalDate period = parseMonth(text);
         billingLock.acquire();
+        requireFinished(period);
         if (runs.existsByPeriodLessThanEqualAndStatus(period, BillingRunStatus.RUNNING)) {
             throw new BusinessRuleException("billing-run-in-progress",
                     "Идёт выставление счетов за период не позже " + YearMonth.from(period)
@@ -67,6 +71,20 @@ public class BillingPeriodService {
         }
         billing.close(Instant.now(), null);
         return mapper.toResponse(periods.saveAndFlush(billing));
+    }
+
+    /**
+     * Закрывать и выставлять счета можно только за месяц, который уже закончился.
+     * Счёт датируется последним днём месяца, поэтому за текущий и будущий месяцы его выставлять нельзя.
+     */
+    @Transactional(readOnly = true)
+    public void requireFinished(LocalDate period) {
+        LocalDate currentMonth = YearMonth.now(clock).atDay(1);
+        if (!period.isBefore(currentMonth)) {
+            throw new BusinessRuleException("period-not-finished",
+                    "Период " + YearMonth.from(period) + " ещё не закончился: закрыть и выставить счета"
+                            + " можно только за прошедший месяц");
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 package io.github.k1mvasyok.billing.invoicing.web;
 
+import io.github.k1mvasyok.billing.TestClockConfiguration;
 import io.github.k1mvasyok.billing.TestcontainersConfiguration;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -28,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** Реестр счетов в XLSX (BR-18): поток, фильтры, читаемый файл. */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestClockConfiguration.class})
 class InvoiceExportTest {
 
     @Autowired

@@ -48,6 +48,7 @@ public class BillingRunService {
         // Запись фиксируем до старта фонового потока, иначе он может не увидеть её.
         UUID runId = transactions.execute(status -> {
             billingLock.acquire();
+            periods.requireFinished(period);
             periods.requireOpen(period);
             if (runs.existsByPeriodAndStatus(period, BillingRunStatus.RUNNING)) {
                 throw new BusinessRuleException("billing-run-in-progress",

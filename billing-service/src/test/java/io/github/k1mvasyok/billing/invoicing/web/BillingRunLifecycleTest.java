@@ -1,6 +1,7 @@
 package io.github.k1mvasyok.billing.invoicing.web;
 
 import com.jayway.jsonpath.JsonPath;
+import io.github.k1mvasyok.billing.TestClockConfiguration;
 import io.github.k1mvasyok.billing.TestcontainersConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestClockConfiguration.class})
 class BillingRunLifecycleTest {
 
     @Autowired
