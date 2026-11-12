@@ -97,7 +97,7 @@ java -jar billing-service/build/libs/billing-service-0.0.1-SNAPSHOT.jar
 
 | Правило | Что значит | Где проверяется |
 |---|---|---|
-| BR-01 | Деньги — `BigDecimal` / `numeric(19,2)`; каждая строка счёта округляется HALF_UP до копеек | `ProrationCalculatorTest` |
+| BR-01 | Деньги — `BigDecimal` / `numeric(19,2)`; каждая строка счёта округляется HALF_UP до копеек. Суммы на входе (цена тарифа, корректировка) принимаются не тоньше копейки: `1500.5` и `1500.500` — да, `1500.005` и `0.001` — ошибка 400 `invalid-value`, без молчаливого округления | `ProrationCalculatorTest`, `MoneyTest`, `PriceAmountTest`, `CorrectionAmountTest` |
 | BR-02 | Строка = месячная цена × количество × дни / дней в месяце | `ProrationCalculatorTest`, `BillingRunLifecycleTest` |
 | BR-03 | Смена цены внутри месяца делит месяц на несколько строк | `ProrationCalculatorTest` |
 | BR-04 | Один обычный счёт на договор и период, если он не отменён; повторный запуск такие договоры пропускает. Один идущий запуск на период: второй старт ждёт первый и получает 409 | `InvoiceSchemaTest`, `BillingRunLifecycleTest`, `BillingRunRaceTest`, `ApiExceptionHandlerTest` |

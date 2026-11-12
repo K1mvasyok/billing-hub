@@ -1,5 +1,6 @@
 package io.github.k1mvasyok.billing.contracts.domain;
 
+import io.github.k1mvasyok.billing.shared.money.Money;
 import io.github.k1mvasyok.billing.shared.period.ValidityPeriod;
 
 import io.github.k1mvasyok.billing.shared.persistence.AbstractEntity;
@@ -49,7 +50,7 @@ public class PlanPrice extends AbstractEntity {
         this.plan = plan;
         this.validFrom = period.from();
         this.validTo = period.to();
-        this.monthlyPrice = monthlyPrice;
+        this.monthlyPrice = Money.toCents(monthlyPrice);
     }
 
     public ValidityPeriod period() {

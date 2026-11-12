@@ -1,6 +1,7 @@
 package io.github.k1mvasyok.billing.invoicing.domain;
 
 import io.github.k1mvasyok.billing.shared.error.BusinessRuleException;
+import io.github.k1mvasyok.billing.shared.money.Money;
 import io.github.k1mvasyok.billing.shared.persistence.AbstractEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -88,12 +89,13 @@ public class Invoice extends AbstractEntity {
     /** Корректировка без строк: сумма может быть отрицательной, ноль не имеет смысла. */
     public static Invoice correction(String number, UUID contractId, UUID customerId, LocalDate period,
                                      LocalDate issueDate, LocalDate dueDate, BigDecimal amount) {
-        if (amount.signum() == 0) {
+        BigDecimal cents = Money.toCents(amount);
+        if (cents.signum() == 0) {
             throw new IllegalArgumentException("Сумма корректировки не может быть нулевой");
         }
         Invoice invoice = new Invoice(number, contractId, customerId, period, InvoiceKind.CORRECTION,
                 issueDate, dueDate);
-        invoice.total = amount;
+        invoice.total = cents;
         return invoice;
     }
 
