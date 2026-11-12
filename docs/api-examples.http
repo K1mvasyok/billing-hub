@@ -47,6 +47,21 @@ Content-Type: application/json
   "monthlyPrice": "1500.00"
 }
 
+### 5a. Смена цены. Старая открытая цена закрывается на validFrom новой (здесь — 1 января следующего года).
+### Новая цена при смене должна быть открытой (без validTo) и начинаться не раньше первого числа текущего месяца.
+### Иначе 409: plan-price-change-in-past, plan-price-change-must-be-open или plan-price-overlap.
+POST {{base}}/plans/PLAN_ID/prices
+Content-Type: application/json
+
+{
+  "validFrom": "2027-01-01",
+  "validTo": null,
+  "monthlyPrice": "1800.00"
+}
+
+### 5b. Список цен плана по дате начала
+GET {{base}}/plans/PLAN_ID/prices
+
 ### 6. Договор (создаётся в статусе DRAFT). validTo — первый день, который уже не входит в срок:
 ### validTo 2027-01-01 покрывает весь 2026 год, включая 31 декабря.
 POST {{base}}/contracts

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -43,5 +44,10 @@ public class PlanController {
     @PostMapping("/{id}/prices")
     ResponseEntity<PriceResponse> addPrice(@PathVariable UUID id, @Valid @RequestBody PriceRequest request) {
         return ResponseEntity.status(201).body(service.addPrice(id, request));
+    }
+
+    @GetMapping("/{id}/prices")
+    List<PriceResponse> listPrices(@PathVariable UUID id) {
+        return service.listPrices(id);
     }
 }

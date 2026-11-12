@@ -57,6 +57,20 @@ public class PlanPrice extends AbstractEntity {
         return new ValidityPeriod(validFrom, validTo);
     }
 
+    /**
+     * Закрывает открытую цену с указанного дня: он первый, по которому цена уже не действует.
+     * Закрыть можно только открытую цену, и день должен быть позже её начала, иначе период станет пустым.
+     */
+    public void closeAt(LocalDate day) {
+        if (validTo != null) {
+            throw new IllegalArgumentException("Цена уже имеет дату окончания");
+        }
+        if (!day.isAfter(validFrom)) {
+            throw new IllegalArgumentException("Цену нельзя закрыть днём не позже её начала");
+        }
+        this.validTo = day;
+    }
+
     public Plan getPlan() {
         return plan;
     }
