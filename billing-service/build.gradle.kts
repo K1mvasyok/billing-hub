@@ -17,7 +17,7 @@ repositories {
     mavenCentral()
 }
 
-val springBootVersion = "4.1.2"
+val springBootVersion = "4.2.0"
 
 dependencies {
     implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
